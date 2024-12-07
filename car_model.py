@@ -113,6 +113,7 @@ class Car(controlled_object.ControlledObject):
                  "long_vel": self.sensors["vel"][0],
                  "lat_vel": self.sensors["vel"][1],
                  "yaw_rate": self.sensors["ang_vel"][2]}
+        #state = np.hstack([self.data.qpos, self.data.qvel])
         return state
 
     def set_steer_angles(self, delta_in: float) -> None:
@@ -147,9 +148,8 @@ class Car(controlled_object.ControlledObject):
         """
         if self.trajectory is not None and self.controller is not None:
             setpoint = self.trajectory.evaluate(self.data.time, self.state)
-            d, delta_in = self.controller.compute_control(self.state, setpoint, self.data.time)
-            self.set_steer_angles(delta_in)
-            self.set_torques(d)
+            ctrl = self.controller.compute_control(np.hstack([self.data.qpos, self.data.qvel]), setpoint, self.data.time)
+            self.data.ctrl = ctrl
 
     def set_default_controller(self) -> None:
         """

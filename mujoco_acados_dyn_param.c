@@ -31,7 +31,6 @@ int disc_dyn_fun_jac(void **in, void **out, void *params)
         // make data
         d = mj_makeData(m);
     }
-
     int nu = m->nu;
     int nq = m->nq;
     int nv = m->nv;
