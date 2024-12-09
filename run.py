@@ -1,13 +1,14 @@
 import numpy as np
 import os
 import xml.etree.ElementTree as ET
-
+import mujoco as mj
 #from aiml_virtual.simulated_object.dynamic_object.controlled_object.car import Car
 from car_model import Car
 from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
 from mjpc import f1tenth_mjpc
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
+from mjpcipopt import OptProblem
 import math
 from mjpc import f1tenth_mjpc
 car_pos = np.array([0, 0, 0.05])
@@ -55,7 +56,6 @@ if __name__ == "__main__":
     traj.build_from_points_const_speed(path_points, path_smoothing=0.01, path_degree=4, const_speed=1.5)
 
     c_model, c_data, c_scene = create_control_model(c_pos= car_pos, c_quat=car_quat)
-    control = f1tenth_mjpc(c_model, c_data, 15, os.path.join("xml_models", "control_scene.xml"), trajectory=traj)
 
     c = Car(has_trailer=False)
 
@@ -63,22 +63,22 @@ if __name__ == "__main__":
 
     m = Trajectory_Marker(x = path_points[:, 0], y = path_points[:,1])
 
-    c.controller = control  
+    #c.controller = control  
     c.trajectory = traj
     scn.add_object(m)
     sim = simulator.Simulator(scn)
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
-            #print(control.trajectory.get_path_parameters(2))
-            point = np.vstack([c.data.qpos[0],c.data.qpos[1]])
-            theta = c.data.qpos[13]
-            c.data.qpos[2] = 0.5
-            c.data.qpos[0] = 0
-            c.data.qpos[1] = 0
-            c.data.qpos[5] = 0
-            c.data.qpos[4] = 0
-            c.data.qpos[6] = 0
+            
+
+
+            #c.data.qpos[2] = 0.5
+            #c.data.qpos[0] = 0
+            #c.data.qpos[1] = 0
+            #c.data.qpos[5] = 0
+            #c.data.qpos[4] = 0
+            #c.data.qpos[6] = 0
             #c.data.ctrl[6] = 0.5
             #c.set_torques(0.05)
 

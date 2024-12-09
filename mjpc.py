@@ -23,7 +23,6 @@ class f1tenth_mjpc(Controller):
         
         self.nx = 2*np.shape(self.data.qvel)[0]
         self.nu = np.shape(self.data.ctrl)[0]
-
         self.nq = np.shape(self.data.qpos)[0]
         self.nv = np.shape(self.data.qvel)[0]
 
@@ -115,11 +114,12 @@ class f1tenth_mjpc(Controller):
 
 
         acados_dir = os.environ.get('ACADOS_SOURCE_DIR')
-        ocp.solver_options.model_external_shared_lib_dir = os.path.join(acados_dir, "include", "mujoco", "lib")
+        ocp.solver_options.model_external_shared_lib_dir = os.path.join(acados_dir, "include", "mujoco-3.2.4", "lib")
         ocp.solver_options.model_external_shared_lib_name = 'mujoco'
 
         self.ocp_solver = AcadosOcpSolver(ocp)
 
+        self.init_solver()
 
 
     def _cost_expr(self, point,theta,thetahatdot):
@@ -188,35 +188,51 @@ class f1tenth_mjpc(Controller):
         self.trajectory.spl_sy = cs.interpolant("traj", "bspline", [s], y)
         self.trajectory.L = s[-1]
 
-    def compute_control(self, x0, setpoint,time, **kwargs):
-        cur_qpos = x0[:14]
+    def init_solver(self):
+        for i in range(self.N):
+            self.ocp_solver.set(i, 'x', np.ones(2*self.model.nv))    
+
+
+        for i in range(self.N-1):
+            self.ocp_solver.set(i, 'u', np.zeros(self.model.nu))    
+
+
+    def compute_control(self, c_state, setpoint,time, **kwargs):
+        cur_qpos = c_state[:14]
 
         qpos_rel = np.zeros(self.model.nv)
-        qpos_rel[3] = 1
         mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
-        x0 = np.hstack([qpos_rel, x0[self.nv+1:]])
+        x0 = np.hstack([qpos_rel, c_state[self.nv+1:]])
         x0[8] = 0
         x0[9] = 0
         x0[11] = 0
         x0[12] = 0
         
         print(x0)
+
+        #Set initial state constraints
         self.ocp_solver.set(0, 'lbx', x0)
         self.ocp_solver.set(0, 'ubx', x0)
 
-        for i in range(self.N):
-            self.ocp_solver.set(i, 'x', x0)    
 
-
-        for i in range(self.N - 1):
-            self.ocp_solver.set(i, 'u', np.zeros(7))
+  
         self.ocp_solver.solve()
-        ctrl = np.zeros(7)
-        ctrl[1] = 0.05
-        #ctrl[2] = 0.05
-        #ctrl[4] = 0.05
-        #ctrl[5] = 0.05
-        #ctrl[6] = 0.05
+
+
+        #Set initial guess for the next iteration:
+        for i in range(self.N-1):
+            self.ocp_solver.set(i, 'x', self.ocp_solver.get(i+1, 'x'))    
+        self.ocp_solver.set(self.N, 'x', self.ocp_solver.get(self.N, 'x'))    
+
+
+        for i in range(self.N-2):
+            self.ocp_solver.set(i, 'u', self.ocp_solver.get(i+1, 'u'))    
+        self.ocp_solver.set(self.N-1, 'u', self.ocp_solver.get(self.N-1, 'u'))  
+
+
+        #Extract control inputs
+        ctrl = self.ocp_solver.get(1, 'u')
+
         return ctrl    
 
     def write_parameters_to_c_source(self):

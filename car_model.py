@@ -155,7 +155,7 @@ class Car(controlled_object.ControlledObject):
         """
         Sets the LPV controller as the controller.
         """
-        self.controller = car_lpv_controller.CarLPVController(self.mass, self.inertia)
+        #self.controller = car_lpv_controller.CarLPVController(self.mass, self.inertia)
 
     def get_trailer(self) -> tuple[ET.Element, list[ET.Element]]:
         """
@@ -277,6 +277,8 @@ class Car(controlled_object.ControlledObject):
         ET.SubElement(car, "geom", name=self.name + "_antennar", type="box", size=".007 .004 .06", pos="-.16 .01 .105", euler="-0.2 0 0", rgba=".1 .1 .1 1.0")
         ET.SubElement(car, "geom", name=self.name + "_antenna_holder", type="box", size=".008 .008 .02", pos="-.16 0 .04", rgba=".1 .1 .1 1.0")
         ################################################ WHEELS ########################################################
+        
+        #Adding the front wheels:
         for wheel in self.wheels.values():
             # note to self: the order of elements in a mjcf file matters!
             wheelbody = ET.SubElement(car, "body", name=wheel.name)

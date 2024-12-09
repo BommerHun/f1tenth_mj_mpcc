@@ -1,7 +1,7 @@
 {
-    "acados_include_path": "/home/bodlaire/Util/acados/include",
-    "acados_lib_path": "/home/bodlaire/Util/acados/lib",
-    "code_export_directory": "/home/bodlaire/Project/f1tenth_mjpc/acados_c_generated/c_generated_code",
+    "acados_include_path": "/home/bodza/Util/acados/include",
+    "acados_lib_path": "/home/bodza/Util/acados/lib",
+    "code_export_directory": "/home/bodza/Projects/f1tenth_mj_mpcc/acados_c_generated/c_generated_code",
     "constraints": {
         "C": [],
         "C_e": [],
@@ -200,7 +200,7 @@
         "zu_e": []
     },
     "cython_include_dirs": [
-        "/home/bodlaire/Project/f1tenth_mjpc/venv/lib/python3.10/site-packages/numpy/_core/include",
+        "/home/bodza/Projects/f1tenth_mj_mpcc/env/lib/python3.10/site-packages/numpy/_core/include",
         "/usr/include/python3.10"
     ],
     "dims": {
@@ -382,7 +382,7 @@
         "integrator_type": "DISCRETE",
         "levenberg_marquardt": 10.0,
         "log_primal_step_norm": false,
-        "model_external_shared_lib_dir": "/home/bodlaire/Util/acados/include/mujoco/lib",
+        "model_external_shared_lib_dir": "/home/bodza/Util/acados/include/mujoco-3.2.4/lib",
         "model_external_shared_lib_name": "mujoco",
         "nlp_solver_ext_qp_res": 0,
         "nlp_solver_max_iter": 100,
