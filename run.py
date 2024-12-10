@@ -67,12 +67,15 @@ if __name__ == "__main__":
     c.trajectory = traj
     scn.add_object(m)
     sim = simulator.Simulator(scn)
+    op = OptProblem()
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
             
+            c.set_steer_angles(c.data.ctrl[0]+0.01)
 
-
+            print(op._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3]))
+            print(op._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
             #c.data.qpos[2] = 0.5
             #c.data.qpos[0] = 0
             #c.data.qpos[1] = 0
@@ -80,7 +83,7 @@ if __name__ == "__main__":
             #c.data.qpos[4] = 0
             #c.data.qpos[6] = 0
             #c.data.ctrl[6] = 0.5
-            #c.set_torques(0.05)
+            #c.set_torques(0.05)            
 
             #print(control._cost_e_c(point, theta))
             #print(control._cost_e_l(point, theta))
