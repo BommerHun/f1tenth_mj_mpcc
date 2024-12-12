@@ -8,9 +8,12 @@ from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
 from mjpc import f1tenth_mjpc
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
-from mjpcipopt import OptProblem
+from mjpcipopt import F1TENTHMJPC
 import math
 from mjpc import f1tenth_mjpc
+import yaml
+import copy
+
 car_pos = np.array([0, 0, 0.05])
 car_quat = "1 0 0 0"
 path_points = np.array(
@@ -49,6 +52,11 @@ def create_control_model(c_pos, c_quat):
 
     return sim.model, sim.data, scn.xml_name
 
+def load_mpcc_params(filename = "control_params.yaml"):
+    with open(filename, 'r') as file:
+        params = yaml.full_load(file)
+        return params
+    
 if __name__ == "__main__":
     scn = scene.Scene(os.path.join(xml_directory, "empty_checkerboard.xml"), save_filename=os.path.join("xml_models", "main_scene.xml"))
 
@@ -59,33 +67,24 @@ if __name__ == "__main__":
 
     c = Car(has_trailer=False)
 
-    scn.add_object(c, pos="0 0 0.052", quat='0.9485664043524404 0 0 0.31657823130133655')
+    scn.add_object(c, pos="0 0 0.06", quat='0.9485664043524404 0 0 0.31657823130133655')
 
     m = Trajectory_Marker(x = path_points[:, 0], y = path_points[:,1])
-
+    params = load_mpcc_params()
     #c.controller = control  
     c.trajectory = traj
     scn.add_object(m)
     sim = simulator.Simulator(scn)
-    op = OptProblem()
+
+    control_model = copy.deepcopy(sim.model)
+    control_data = copy.deepcopy(sim.data)
+    controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
+    c.controller = controller
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
             
-            c.set_steer_angles(c.data.ctrl[0]+0.01)
-
-            print(op._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3]))
-            print(op._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
-            #c.data.qpos[2] = 0.5
-            #c.data.qpos[0] = 0
-            #c.data.qpos[1] = 0
-            #c.data.qpos[5] = 0
-            #c.data.qpos[4] = 0
-            #c.data.qpos[6] = 0
-            #c.data.ctrl[6] = 0.5
-            #c.set_torques(0.05)            
-
-            #print(control._cost_e_c(point, theta))
-            #print(control._cost_e_l(point, theta))
-            #print(c.data.qpos[13])
-            #print(f"nx: {np.shape(c.data.qpos)}\nnx_dot: {np.shape(c.data.qvel)}\nnu:{np.shape(c.data.ctrl)}")
+            left, right = controller.problem._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3])
+            #print(left, right)
+            #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
+            #print(c.state)
