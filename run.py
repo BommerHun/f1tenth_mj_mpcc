@@ -6,16 +6,14 @@ import mujoco as mj
 from car_model import Car
 from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
-from mjpc import f1tenth_mjpc
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
 from mjpcipopt import F1TENTHMJPC
 import math
-from mjpc import f1tenth_mjpc
 import yaml
 import copy
 
 car_pos = np.array([0, 0, 0.05])
-car_quat = "1 0 0 0"
+car_quat = '0.9485664043524404 0 0 0.31657823130133655'
 path_points = np.array(
     [
         [0, 0],
@@ -46,8 +44,7 @@ def create_control_model(c_pos, c_quat):
     scn = scene.Scene(os.path.join(xml_directory, "empty_checkerboard.xml"), save_filename=os.path.join("xml_models", "control_scene.xml"))
 
     c = Car()
-    scn.add_object(c, " ".join(map(str, c_pos + np.array([0, 0, 1]))), " ".join(map(str, c_quat)), "0.5 0.5 0.5 1")
-
+    scn.add_object(c, pos=f"{car_pos[0]} {car_pos[1]} {car_pos[2]}", quat=car_quat)
     sim = simulator.Simulator(scn)
 
     return sim.model, sim.data, scn.xml_name
@@ -67,7 +64,7 @@ if __name__ == "__main__":
 
     c = Car(has_trailer=False)
 
-    scn.add_object(c, pos="0 0 0.06", quat='0.9485664043524404 0 0 0.31657823130133655')
+    scn.add_object(c, pos=f"{car_pos[0]} {car_pos[1]} {car_pos[2]}", quat=car_quat)
 
     m = Trajectory_Marker(x = path_points[:, 0], y = path_points[:,1])
     params = load_mpcc_params()
@@ -84,6 +81,9 @@ if __name__ == "__main__":
         while sim.viewer.is_running():
             sim.tick()
             
+            #c.data.ctrl[0] = 0.5
+            #c.data.ctrl[3] = 0.5
+
             left, right = controller.problem._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3])
             #print(left, right)
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))

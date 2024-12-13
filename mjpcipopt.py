@@ -16,6 +16,7 @@ from trajectory_util import Spline_2D
 import casadi as cs
 from scipy.interpolate import splev
 import yaml
+from util.MPCC_plotter import MPCC_plotter
 
 class OptProblem(ci.Problem):
     def __init__(self, model= None, data= None, trajectory:CarTrajectory= None, N= None, qpos_0= None, weights= None, solver_params = None, bounds = 0):
@@ -40,7 +41,7 @@ class OptProblem(ci.Problem):
         self.nx = 2*self.nv
         self.nu = self.model.nu
         self.fd_centered = True  # 0: forward, 1: centered difference
-        self.fd_eps = 10**-5
+        self.fd_eps = 10**-6
         self.qpos0 = qpos_0
         self.solver_params = solver_params
         self.bound = bounds
@@ -52,7 +53,6 @@ class OptProblem(ci.Problem):
         x_lb, x_ub, u_lb, u_ub = self.bound
         lbx = self.N * x_lb.tolist() + (self.N - 1) * u_lb.tolist()
         ubx = self.N * x_ub.tolist() + (self.N - 1) * u_ub.tolist()
-
 
 
         #We have tons of constraints:
@@ -89,14 +89,14 @@ class OptProblem(ci.Problem):
         
         #####################################Expressing the derivates of the inverse ackermann equations:##################################
         self.dot_ack_inv_left = cs.gradient(self.ack_inv_left, d_l)
-        self.dot_ack_inv_right = -cs.gradient(self.ack_inv_right, d_r)
+        self.dot_ack_inv_right = cs.gradient(self.ack_inv_right, d_r)
 
         #####################################Creating the callable cassadi functions:######################################################
 
         self._ack_inv_left = cs.Function('inv_left', [d_l],[self.ack_inv_left])
         self._ack_inv_right =  cs.Function('inv_right', [d_r], [self.ack_inv_right])
         self._dot_ack_inv_left = cs.Function('dot_inv_left', [d_l], [self.dot_ack_inv_left])
-        self._dot_ack_inv_right = cs.Function('dot_inv_left', [d_r], [self.dot_ack_inv_right])
+        self._dot_ack_inv_right = cs.Function('dot_inv_right', [d_r], [self.dot_ack_inv_right])
 
 
         #####################################Expressing the objective function#############################################################
@@ -140,6 +140,7 @@ class OptProblem(ci.Problem):
             x
         """
         cost = self._objective_(x)
+       
         return cost
 
     def gradient(self,x):
@@ -198,23 +199,12 @@ class OptProblem(ci.Problem):
 
         for k in range(self.N-1):
             #Evalutating the inverse ackermann steering equation in the current inputs
-            d_l = x[k_0+ k*self.nu +1]
-            d_r = x[k_0+ k*self.nu +2]
+            d_l = x[k_0+ k*self.nu +0]
+            d_r = x[k_0+ k*self.nu +3]
 
             d_i_l, d_i_r = self._inverse_ackerman_steering(d_l, d_r) # d_i_l: delta_input_left d_i_r: delta_input_right
-            constraints = np.append(constraints, d_l-d_r) #The constraint is written: d_i_l-d_i_r = 0 !!!!!!!!
+            constraints = np.append(constraints, d_i_l-d_i_r) #The constraint is written: d_i_l-d_i_r = 0 !!!!!!!!
       
-        """Steering Constraints"""
-        #INDEXING OF the actuators: Left:0 Right:3-> these indexes are shifted by k_0, to the end of the STATE trajectory
-
-        for k in range(self.N-1):
-            #Evalutating the inverse ackermann steering equation in the current inputs
-            d_l = x[k_0+ k*self.nu +1]
-            d_r = x[k_0+ k*self.nu +2]
-
-            d_i_l, d_i_r = self._inverse_ackerman_steering(d_l, d_r) # d_i_l: delta_input_left d_i_r: delta_input_right
-            constraints = np.append(constraints, d_i_l) #The constraint is written: -delta_max<d_i_l<delta_max
-
 
         #Return collected contraints
         """FINAL FORM OF THE CONSTRAINT VECTOR:"""
@@ -237,6 +227,9 @@ class OptProblem(ci.Problem):
 
         delta_in_left = self._ack_inv_left(d_l)
         delta_in_right = self._ack_inv_right(d_r)
+
+        #delta_in_left = d_l
+        #delta_in_right = -d_r
         return delta_in_left, delta_in_right
     
 
@@ -244,6 +237,8 @@ class OptProblem(ci.Problem):
         delta_in_left = self._dot_ack_inv_left(d_l)
         delta_in_right = self._dot_ack_inv_right(d_r)
 
+        #delta_in_left = 1
+        #delta_in_right = 1
         return delta_in_left, delta_in_right
 
     def jacobian(self, x):
@@ -316,7 +311,6 @@ class OptProblem(ci.Problem):
 
         return con_jac[row, col]
         
-        pass
 
     def dyn_step(self, x_cur, u_cur):
         qpos_err = x_cur[:self.model.nv]
@@ -372,24 +366,24 @@ class OptProblem(ci.Problem):
         """Drivetrain Constraints: EQUALITY""" #row48-50
         for k in range(self.N-1):
             con_jac[N_0+k, k_0 + k*self.nu + 1] = 1
-            con_jac[N_0+k, k_0 + k*self.nu + 2] = -1
+            con_jac[N_0+k, k_0 + k*self.nu + 2] = 1
         N_0 +=self.N-1
 
         for k in range(self.N-1):
             con_jac[N_0+k, k_0 + k*self.nu + 2] = 1
-            con_jac[N_0+k, k_0 + k*self.nu + 4] = -1
+            con_jac[N_0+k, k_0 + k*self.nu + 4] = 1
         N_0+= self.N-1
 
         for k in range(self.N-1):
             con_jac[N_0+k, k_0 + k*self.nu + 4] = 1
-            con_jac[N_0+k, k_0 + k*self.nu + 5] = -1
+            con_jac[N_0+k, k_0 + k*self.nu + 5] = 1
         N_0 +=self.N-1
 
 
         """Ackermann Steering Constraints"""#row52
         for k in range(self.N-1):
             con_jac[N_0+k, k_0 + k*self.nu + 0] = 1
-            con_jac[N_0+k, k_0 + k*self.nu + 3] = -1
+            con_jac[N_0+k, k_0 + k*self.nu + 3] = 1
         N_0 += self.N-1
 
 
@@ -419,8 +413,8 @@ class OptProblem(ci.Problem):
             points_list.append([i, x[i], y[i]])
 
         self.trajectory = Spline_2D(np.array([[0,0,0],[1,1,1],[2,2,2]]))
-        self.trajectory.spl_sx = cs.interpolant("traj", "bspline", [s], x)
-        self.trajectory.spl_sy = cs.interpolant("traj", "bspline", [s], y)
+        self.trajectory.spl_sx = cs.interpolant("trajx", "bspline", [s], x)
+        self.trajectory.spl_sy = cs.interpolant("trajy", "bspline", [s], y)
         self.trajectory.L = s[-1]
 
     
@@ -479,9 +473,9 @@ class F1TENTHMJPC(BaseController):
         
         # MPC solver parameters
         solver = {
-            "print_level": 0,
-            "max_iter": 100,
-            "tol": 1e-4
+            "print_level": params["print_level"],
+            "max_iter": params["max_iter"],
+            "tol": params["tol"]
         }
 
         #Extracting optimisation weights:
@@ -493,6 +487,11 @@ class F1TENTHMJPC(BaseController):
 
         self.problem = OptProblem(*prob_params)
 
+        self.plotter = MPCC_plotter()
+        s = np.linspace(0, trajectory.length, 1000)
+        self.plotter.set_ref_traj(np.array(self.problem.trajectory.spl_sx(s)), np.array(self.problem.trajectory.spl_sy(s)))
+        self.plotter.show()
+
 
     def compute_control(self, state, setpoint, time):
         # Extract states
@@ -502,9 +501,11 @@ class F1TENTHMJPC(BaseController):
         x_0 = np.hstack((qpos_rel, state["qvel"]))
 
 
-        x, info = self.problem.solve(x_0, np.zeros(self.N*self.nx + (self.N-1)*self.nu))
+        x, info = self.problem.solve(x_0, np.ones(self.N*self.nx + (self.N-1)*self.nu))
         ctrl = x[self.N*self.nx+self.nu : self.N*self.nx+self.nu*2]
-        ctrl[3] = ctrl[3]
         #ctrl[0] = ctrl[3]
         print(ctrl)
+        new_x = x[0:self.N*self.nx:self.nx]
+        new_y = x[0:self.N*self.nx:self.nx]
+        self.plotter.update_plot(new_x, new_y)
         return ctrl
