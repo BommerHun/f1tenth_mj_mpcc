@@ -84,8 +84,8 @@ class OptProblem(ci.Problem):
         d_r = cs.MX.sym('dr')
 
 
-        self.ack_inv_left = cs.atan((-cs.tan(d_l) * self.wb) / (0.5 * self.tw * cs.tan(d_l) - self.wb))
-        self.ack_inv_right =  -cs.atan((-cs.tan(d_r) * self.wb) / (0.5 * self.tw * cs.tan(d_r) + self.wb))
+        self.ack_inv_left = cs.atan((-cs.tan(d_l) * self.wb) / (0.5 * self.tw * cs.tan(d_l) + self.wb))
+        self.ack_inv_right =  -cs.atan((-cs.tan(d_r) * self.wb) / (0.5 * self.tw * cs.tan(d_r) - self.wb))
         
         #####################################Expressing the derivates of the inverse ackermann equations:##################################
         self.dot_ack_inv_left = cs.gradient(self.ack_inv_left, d_l)
@@ -112,7 +112,7 @@ class OptProblem(ci.Problem):
             e_c = cs.dot(n.T,(point_r-point))
             e_l = cs.dot(v.T,(point_r-point))
 
-            cost += e_c*self.wc + e_l*self.wl
+            cost += e_c**2*self.wc + e_l**2*self.wl
 
         k_0 = self.N*self.nx
         for k in range(self.N-1):
@@ -246,6 +246,7 @@ class OptProblem(ci.Problem):
 
         Args:
             x: optimisation variables
+            x: optimisation variables
         """
         con_jac = np.zeros((self.nc, self.N * self.nx + (self.N - 1) * self.nu))
         k_0 = self.N * self.nx  #stores the end of the state trajectory (beginning of the input trajectory)
@@ -269,7 +270,6 @@ class OptProblem(ci.Problem):
         for k in range(self.N-1):          
             A, B = self.dyn_jac(x[k * self.nx : (k + 1) * self.nx], x[k_0 + k * self.nu : k_0 + (k + 1) * self.nu])
             jac = np.zeros((self.nx, self.N * self.nx + (self.N - 1) * self.nu))
-            A, B = self.dyn_jac(x[k * self.nx : (k + 1) * self.nx], x[k_0 + k * self.nu : k_0 + (k + 1) * self.nu])
 
             jac[:, k * self.nx : (k + 1) * self.nx] = -A
             jac[:, k_0 + k * self.nu : k_0 + (k + 1) * self.nu] = -B
@@ -308,7 +308,6 @@ class OptProblem(ci.Problem):
 
 
         row, col = self.jacobianstructure()
-
         return con_jac[row, col]
         
 
@@ -393,6 +392,8 @@ class OptProblem(ci.Problem):
             if i < self.N*self.nx:
                 continue
             i = i+1"""
+        
+        #con_jac[:,:] = 1
         return np.nonzero(con_jac)
     
     def jacobianstructure(self):
@@ -497,15 +498,22 @@ class F1TENTHMJPC(BaseController):
         # Extract states
         qpos_rel = np.zeros(self.model.nv)
         cur_qpos = copy.deepcopy(state["qpos"])
+        cur_qpos[8] = 0
+        cur_qpos[9] = 0
+        cur_qpos[11] = 0
+        cur_qpos[12] = 0
         mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
         x_0 = np.hstack((qpos_rel, state["qvel"]))
 
-
-        x, info = self.problem.solve(x_0, np.ones(self.N*self.nx + (self.N-1)*self.nu))
+        
+        x, info = self.problem.solve(x_0, np.hstack((np.tile(x_0, self.N), np.zeros(self.nu*(self.N-1)))))
         ctrl = x[self.N*self.nx+self.nu : self.N*self.nx+self.nu*2]
         #ctrl[0] = ctrl[3]
-        print(ctrl)
         new_x = x[0:self.N*self.nx:self.nx]
-        new_y = x[0:self.N*self.nx:self.nx]
+        new_y = x[1:self.N*self.nx+1:self.nx]
+        for i in range(self.N):
+            print(f"prediction {i}.: {new_x[i]},{new_y[i]}")
+
+        print("___________________________________________")
         self.plotter.update_plot(new_x, new_y)
         return ctrl

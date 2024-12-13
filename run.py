@@ -75,7 +75,10 @@ if __name__ == "__main__":
 
     control_model = copy.deepcopy(sim.model)
     control_data = copy.deepcopy(sim.data)
+
     controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
+    sim.model.opt.timestep = params["dt"]
+
     c.controller = controller
     with sim.launch():
         while sim.viewer.is_running():
@@ -84,7 +87,9 @@ if __name__ == "__main__":
             #c.data.ctrl[0] = 0.5
             #c.data.ctrl[3] = 0.5
 
-            left, right = controller.problem._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3])
+            #left, right = controller.problem._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3])
+
+
             #print(left, right)
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
             #print(c.state)
