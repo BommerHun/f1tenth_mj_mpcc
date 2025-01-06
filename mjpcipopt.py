@@ -16,7 +16,7 @@ from trajectory_util import Spline_2D
 import casadi as cs
 from scipy.interpolate import splev
 import yaml
-from util.MPCC_plotter import MPCC_plotter
+from util.MPCC_plotter import MPCC_plotter, Advanced_MPCC_plotter
 
 class OptProblem(ci.Problem):
     def __init__(self, model= None, data= None, trajectory:CarTrajectory= None, N= None, qpos_0= None, weights= None, solver_params = None, bounds = 0):
@@ -54,7 +54,7 @@ class OptProblem(ci.Problem):
         lbx = self.N * x_lb.tolist() + (self.N - 1) * u_lb.tolist()
         ubx = self.N * x_ub.tolist() + (self.N - 1) * u_ub.tolist()
 
-
+        
         #We have tons of constraints:
         """
             -Initial condition & dynamics constraint (N)
@@ -84,9 +84,12 @@ class OptProblem(ci.Problem):
         d_r = cs.MX.sym('dr')
 
 
-        self.ack_inv_left = cs.atan((-cs.tan(d_l) * self.wb) / (0.5 * self.tw * cs.tan(d_l) + self.wb))
-        self.ack_inv_right =  -cs.atan((-cs.tan(d_r) * self.wb) / (0.5 * self.tw * cs.tan(d_r) - self.wb))
+
+        self.ack_inv_left = cs.atan((cs.tan(d_l) * self.wb) / (-0.5 * self.tw * cs.tan(d_l) + self.wb))
+        self.ack_inv_right =  cs.atan((cs.tan(d_r) * self.wb) / (0.5 * self.tw * cs.tan(d_r) + self.wb))
         
+
+
         #####################################Expressing the derivates of the inverse ackermann equations:##################################
         self.dot_ack_inv_left = cs.gradient(self.ack_inv_left, d_l)
         self.dot_ack_inv_right = cs.gradient(self.ack_inv_right, d_r)
@@ -103,7 +106,7 @@ class OptProblem(ci.Problem):
         cost = 0
         x = cs.MX.sym('x', n_opt)
         for k in range(self.N):
-            theta = x[k*self.nx + 13]
+            theta = x[k*self.nx + 12]
             point = cs.vertcat(x[k*self.nx + 0], x[k*self.nx + 1]) 
 
             point_r, v =  self.trajectory.get_path_parameters(theta = theta, theta_0= 0.05) 
@@ -112,12 +115,15 @@ class OptProblem(ci.Problem):
             e_c = cs.dot(n.T,(point_r-point))
             e_l = cs.dot(v.T,(point_r-point))
 
+            
             cost += e_c**2*self.wc + e_l**2*self.wl
 
         k_0 = self.N*self.nx
         for k in range(self.N-1):
             thetadot = x[k_0 + k*self.nu + 6]
-            cost-= thetadot*self.wt
+            cost-= thetadot*self.wt 
+
+      
 
         self._objective_ = cs.Function('objective', [x], [cost])
         grad = cs.gradient(cost, x)
@@ -140,7 +146,6 @@ class OptProblem(ci.Problem):
             x
         """
         cost = self._objective_(x)
-       
         return cost
 
     def gradient(self,x):
@@ -179,6 +184,7 @@ class OptProblem(ci.Problem):
 
         """Dynamics Constraints"""
         constraints = np.append(constraints, x[:self.nx] - self.x_0) #Initial condition
+        
         for k in range(self.N-1):
             constraints = np.append(constraints, x[(k+1)*self.nx:(k+2)*self.nx]-self.dyn_step(x[k*self.nx: (k+1)*self.nx], x[k_0 + k*self.nu : k_0 + (k+1)*self.nu]))
 
@@ -222,9 +228,9 @@ class OptProblem(ci.Problem):
             d_l_in, 
             d_r_in
         """
+        #delta_in_right = -np.atan((-np.tan(d_r) * self.wb) / (0.5 * self.tw * np.tan(d_l) + self.wb))
         #delta_in_left = np.atan((-np.tan(d_l) * self.wb) / (0.5 * self.tw * np.tan(d_l) - self.wb))
-        #delta_in_right = np.atan((-np.tan(d_r) * self.wb) / (0.5 * self.tw * np.tan(d_l) + self.wb))
-
+        
         delta_in_left = self._ack_inv_left(d_l)
         delta_in_right = self._ack_inv_right(d_r)
 
@@ -308,6 +314,11 @@ class OptProblem(ci.Problem):
 
 
         row, col = self.jacobianstructure()
+
+        for i in range(len(con_jac)):
+            #print(f"row {i}")
+            #input(con_jac[i,:])
+            pass
         return con_jac[row, col]
         
 
@@ -316,6 +327,10 @@ class OptProblem(ci.Problem):
         qpos_actual = self.qpos0.copy()
         mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
         self.data.qpos = qpos_actual
+        #self.data.qpos[8] = 0
+        #self.data.qpos[9] = 0
+        #self.data.qpos[11] = 0
+        #self.data.qpos[12] = 0
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
         #for _ in range(int(self.dt / self.model.opt.timestep)):
@@ -327,12 +342,16 @@ class OptProblem(ci.Problem):
         qpos_err = x_cur[:self.model.nv]
         qpos_actual = self.qpos0.copy()
         mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
-        self.data.qpos = qpos_actual
+        #self.data.qpos = qpos_actual
+        #self.data.qpos[8] = 0
+        #self.data.qpos[9] = 0
+        #self.data.qpos[11] = 0
+        #self.data.qpos[12] = 0
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
         A = np.zeros((2*self.model.nv, 2*self.model.nv))
         B = np.zeros((2*self.model.nv, self.model.nu))
-        mj.mjd_transitionFD(self.model, self.data, self.fd_eps, self.fd_centered, A, B, None, None)
+        mj.mjd_transitionFD(self.model, self.data, self.fd_eps, 0, A, B, None, None)
         return A, B
     
 
@@ -344,8 +363,7 @@ class OptProblem(ci.Problem):
         """Initial state constraint:"""
         jac_0 = np.zeros((self.nx, self.N*self.nx + (self.N-1)*self.nu))
         jac_0[:, :self.nx] = np.eye(self.nx, self.nx)
-
-
+       
         con_jac[:self.nx, :] = jac_0
 
 
@@ -387,12 +405,12 @@ class OptProblem(ci.Problem):
 
 
 
-        """print(con_jac)
+        """print(con_jac)"""
         for i in range(self.nc):
             if i < self.N*self.nx:
                 continue
-            i = i+1"""
-        
+            #print(con_jac[i,:])
+            pass
         #con_jac[:,:] = 1
         return np.nonzero(con_jac)
     
@@ -414,8 +432,8 @@ class OptProblem(ci.Problem):
             points_list.append([i, x[i], y[i]])
 
         self.trajectory = Spline_2D(np.array([[0,0,0],[1,1,1],[2,2,2]]))
-        self.trajectory.spl_sx = cs.interpolant("trajx", "bspline", [s], x)
-        self.trajectory.spl_sy = cs.interpolant("trajy", "bspline", [s], y)
+        self.trajectory.spl_sx = cs.interpolant("trajx_1", "bspline", [s], x)
+        self.trajectory.spl_sy = cs.interpolant("trajy_1", "bspline", [s], y)
         self.trajectory.L = s[-1]
 
     
@@ -433,6 +451,19 @@ class F1TENTHMJPC(BaseController):
         self.data : mj.MjData = data
         self.nx =2* self.model.nv
         self.nu = self.model.nu
+        # Quaternion states are relative, this is the setpoint
+        self.qpos0 = np.zeros(self.model.nq)
+        self.qpos0[3] = 1
+        self.N = params["N"]
+        qpos_rel = np.zeros(self.model.nv)
+        cur_qpos = copy.deepcopy(self.data.qpos)
+        #cur_qpos[7] = 0
+        #cur_qpos[8] = 0
+        #cur_qpos[10] = 0
+        #cur_qpos[11] = 0
+        mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
+        c_sol = np.hstack((qpos_rel, self.data.qvel))
+        self.c_sol = np.hstack((np.tile(c_sol, self.N), np.zeros(self.nu* (self.N-1))))
 
         #Time step for the simulation
         self.model.opt.timestep = params["dt"]
@@ -448,7 +479,9 @@ class F1TENTHMJPC(BaseController):
 
 
         ubx =  np.ones(self.nx)* 10**20
-        ubx[13] = theta_max
+        ubx[12] = theta_max
+        ubx[int(self.nx/2) + 6] = 1
+        ubx[int(self.nx/2) + 9] = 1
 
         ubu = np.ones( self.nu)*10**20
         ubu[0] = delta_max
@@ -456,21 +489,22 @@ class F1TENTHMJPC(BaseController):
         ubu[6] = theta_dot_max
         ubu[1] = d_max
 
-        lbx =  np.ones(self.nx)* 10**-20
-        lbx[13] = theta_max
 
-        lbu = np.ones(self.nu)*10**-20
+        lbx =  -np.ones(self.nx)* 10**20
+        lbx[12] = 0
+        lbx[int(self.nx/2) + 6] = -1
+        lbx[int(self.nx/2) +9]= -1
+
+
+        lbu = -np.ones(self.nu)*10**20
         lbu[0] = -delta_max
         lbu[3] = -delta_max
         lbu[6] = theta_dot_min
         lbu[1] = d_min
         
         bounds = (lbx, ubx, lbu, ubu)
-        # Quaternion states are relative, this is the setpoint
-        self.qpos0 = np.zeros(self.model.nq)
-        self.qpos0[3] = 1
+     
 
-        self.N = params["N"]
         
         # MPC solver parameters
         solver = {
@@ -493,6 +527,23 @@ class F1TENTHMJPC(BaseController):
         self.plotter.set_ref_traj(np.array(self.problem.trajectory.spl_sx(s)), np.array(self.problem.trajectory.spl_sy(s)))
         self.plotter.show()
 
+        self.state_logger = Advanced_MPCC_plotter(5)
+        self.state_logger.axs[0].set_title("x-y")
+        self.state_logger.axs[1].set_title("phi(N)")
+        self.state_logger.axs[2].set_title("delta_left(N)")
+        self.state_logger.axs[3].set_title("d(N)")
+        self.state_logger.axs[3].set_title("d_theta(N)")
+        self.state_logger.axs[3].set_xlim(0, self.N)
+        self.state_logger.axs[2].set_xlim(0, self.N)
+        self.state_logger.axs[1].set_xlim(0, self.N)
+        self.state_logger.axs[4].set_xlim(0, self.N)
+
+        self.state_logger.axs[1].set_ylim(-3.14, 3.14)
+        self.state_logger.axs[2].set_ylim(-delta_max, delta_max)
+        self.state_logger.axs[3].set_ylim(d_min, d_max)
+        self.state_logger.axs[4].set_ylim(theta_dot_min, theta_dot_max)
+       
+        self.state_logger.show()
 
     def compute_control(self, state, setpoint, time):
         # Extract states
@@ -506,14 +557,27 @@ class F1TENTHMJPC(BaseController):
         x_0 = np.hstack((qpos_rel, state["qvel"]))
 
         
-        x, info = self.problem.solve(x_0, np.hstack((np.tile(x_0, self.N), np.zeros(self.nu*(self.N-1)))))
-        ctrl = x[self.N*self.nx+self.nu : self.N*self.nx+self.nu*2]
+        x, info = self.problem.solve(x_0, self.c_sol)
+        self.c_sol = x
+        ctrl = x[self.N*self.nx+self.nu*0 : self.N*self.nx+self.nu*1]
         #ctrl[0] = ctrl[3]
         new_x = x[0:self.N*self.nx:self.nx]
         new_y = x[1:self.N*self.nx+1:self.nx]
+        new_phi = x[5:self.N*self.nx+5:self.nx]
         for i in range(self.N):
-            print(f"prediction {i}.: {new_x[i]},{new_y[i]}")
-
-        print("___________________________________________")
+            #print(f"prediction {i}.: {new_x[i]},{new_y[i]}")
+            pass
+        #print(f"prediction: {new_x[0]},{new_y[0]},{new_phi[0]} reality: {x_0[0]},{x_0[1]},{x_0[5]}")
+        #print("___________________________________________")
         self.plotter.update_plot(new_x, new_y)
+        theta = x[12]
+        self.plotter.set_ref_point(float(self.problem.trajectory.spl_sx(theta)),float(self.problem.trajectory.spl_sy(theta)) )
+        self.state_logger.set_data(0, new_x, new_y)
+        self.state_logger.set_data(1, np.arange(0,self.N,1), x[5:self.N*self.nx+5:self.nx])
+        self.state_logger.set_data(2, np.arange(0,self.N-1,1), x[self.N*self.nx : self.N*self.nx+self.nu*(self.N-1)+1: self.nu])
+        self.state_logger.set_data(3, np.arange(0,self.N-1,1), x[self.N*self.nx+1 : self.N*self.nx+self.nu*(self.N-1)+1: self.nu])
+        self.state_logger.set_data(4, np.arange(0,self.N-1,1), x[self.N*self.nx+6 : self.N*self.nx+self.nu*(self.N-1)+6: self.nu])
+        self.state_logger.update_plot()
+        #ctrl[:] = 0
+        
         return ctrl

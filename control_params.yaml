@@ -1,15 +1,15 @@
 dt: 0.01
-N: 10 #This gives a 1 s ahead prediction
-d_max : 0.3
-d_min : 0.05
-delta_max : 0.6
-dtheta_max : 0.5
-dtheta_min : 0.001
+N: 30 #This gives a 1 s ahead prediction
+d_max : 3
+d_min : 0.01
+delta_max : 0.5
+dtheta_max : 2
+dtheta_min : 00.01
 
-e_c : 400
+e_c : 40
 e_l : 40
-e_t : 1
+e_t : 0.05
 
 print_level: 0
-max_iter: 500
+max_iter: 50
 tol: 0.0001

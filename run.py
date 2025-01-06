@@ -12,8 +12,17 @@ import math
 import yaml
 import copy
 
+def quaternion_from_z_rotation(rotation_z):
+
+    w = math.cos(rotation_z / 2)
+    x = 0
+    y = 0
+    z = math.sin(rotation_z / 2)
+    
+    return f"{w} {x} {y} {z}"
+
 car_pos = np.array([0, 0, 0.05])
-car_quat = '0.9485664043524404 0 0 0.31657823130133655'
+car_quat = quaternion_from_z_rotation(3.14/4)
 path_points = np.array(
     [
         [0, 0],
@@ -40,6 +49,7 @@ path_points = np.array(
     ]
 )
 
+
 def create_control_model(c_pos, c_quat):
     scn = scene.Scene(os.path.join(xml_directory, "empty_checkerboard.xml"), save_filename=os.path.join("xml_models", "control_scene.xml"))
 
@@ -53,6 +63,7 @@ def load_mpcc_params(filename = "control_params.yaml"):
     with open(filename, 'r') as file:
         params = yaml.full_load(file)
         return params
+    
     
 if __name__ == "__main__":
     scn = scene.Scene(os.path.join(xml_directory, "empty_checkerboard.xml"), save_filename=os.path.join("xml_models", "main_scene.xml"))
@@ -80,16 +91,13 @@ if __name__ == "__main__":
     sim.model.opt.timestep = params["dt"]
 
     c.controller = controller
+  
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
-            
-            #c.data.ctrl[0] = 0.5
-            #c.data.ctrl[3] = 0.5
-
-            #left, right = controller.problem._inverse_ackerman_steering(c.data.ctrl[0], c.data.ctrl[3])
 
 
-            #print(left, right)
+            #c.data.qpos[2] = 0.5
+            #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
             #print(c.state)
