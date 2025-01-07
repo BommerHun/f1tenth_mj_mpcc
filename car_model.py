@@ -139,10 +139,17 @@ class Car(controlled_object.ControlledObject):
             d (float): The motor input in range [0, 1]
         """
         v = self.sensors["vel"][0]
-        torque = Car.C_M1*d - Car.C_M2*v - Car.C_M3*np.sign(v)
+        torque = Car.C_M1*d - Car .C_M2*v - Car.C_M3*np.sign(v)
         for wheel in self.wheels.values():
             wheel.ctrl[0] = utils_general.clamp(torque, Car.MAX_TORQUE)
+    def set_theta_vel(self, theta_vel)->None:
+        """
+        Sets the velocity of the virtual state of the model
 
+        Args:
+            theta_vel (float): Input of the virtual state
+        """
+        self.data.ctrl[6] = theta_vel
     def update(self) -> None:
         """
         Overrides SimulatedObject.update. Calculates a setpoint based on the trajectory and time, then sets the
@@ -150,8 +157,10 @@ class Car(controlled_object.ControlledObject):
         """
         if self.trajectory is not None and self.controller is not None:
             setpoint = self.trajectory.evaluate(self.data.time, self.state)
-            ctrl = self.controller.compute_control(self.state, setpoint, self.data.time)
-            self.data.ctrl = ctrl
+            delta, d, theta_vel = self.controller.compute_control(self.state, setpoint, self.data.time)
+            self.set_torques(d)
+            self.set_steer_angles(delta)
+            self.set_theta_vel(theta_vel)
 
     def set_default_controller(self) -> None:
         """

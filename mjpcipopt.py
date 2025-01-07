@@ -19,7 +19,7 @@ import yaml
 from util.MPCC_plotter import MPCC_plotter, Advanced_MPCC_plotter
 
 class OptProblem(ci.Problem):
-    def __init__(self, model= None, data= None, trajectory:CarTrajectory= None, N= None, qpos_0= None, weights= None, solver_params = None, bounds = 0):
+    def __init__(self, model= None, data= None, trajectory:CarTrajectory= None, N= None, qpos_0= None, weights= None, solver_params = None, bounds = 0, vehicle_params = None):
         #Contents:
         """
         -nx; nu; nc; nq through the model and data
@@ -45,11 +45,27 @@ class OptProblem(ci.Problem):
         self.qpos0 = qpos_0
         self.solver_params = solver_params
         self.bound = bounds
-        self.wc ,self.wl,self.wt =  weights
+        self.wc ,self.wl,self.wt, self.ss, self.sd =  weights
+
+        if vehicle_params != None:
+            d_max = vehicle_params["d_max"]
+            d_min = vehicle_params["d_min"]
+            C_m1 = vehicle_params["C_m1"]
+            C_m2 = vehicle_params["C_m2"]
+            C_m3 = vehicle_params["C_m3"]
+        else:
+            d_max = 0.2
+            d_min = 0.15
+            C_m1 = Car.C_M1
+            C_m2 = Car.C_M2
+            C_m3 = Car.C_M3
+            self.substep = 20
+            self.time_step = self.model.opt.timestep
+            self.sim_step = self.model.opt.timestep/self.substep
+            
 
         self._set_trajectory(trajectory.evol_tck, trajectory.pos_tck) #Convert the default CarTrajectry to the casadi implementation
 
-        #TODO LOTS OF TODO
         x_lb, x_ub, u_lb, u_ub = self.bound
         lbx = self.N * x_lb.tolist() + (self.N - 1) * u_lb.tolist()
         ubx = self.N * x_ub.tolist() + (self.N - 1) * u_ub.tolist()
@@ -59,14 +75,19 @@ class OptProblem(ci.Problem):
         """
             -Initial condition & dynamics constraint (N)
             -Drivetrain constraints-> equalitiy 3*(N-1)
+            -Drivetrain motor reference->min max N-1
             -Steering Constraints-> ackerman steering N-1
             - """
-        self.nc = self.N*self.nx+(self.N-1)*(3)+(self.N-1)
+        self.nc = self.N*self.nx+(self.N-1)*(3)+(self.N-1) +(self.N-1)
         
 
         cl = self.nc * [0]
         cu = self.nc * [0]
-        
+
+        for k in range(self.N-1):
+             cl[self.N*self.nx+(self.N-1)*(3)+k] = d_min
+             cu[self.N*self.nx+(self.N-1)*(3)+k] = d_max
+
         # setup optimization
         n_opt = self.N * self.nx + (self.N - 1) * self.nu
         n_con = self.nc
@@ -102,6 +123,23 @@ class OptProblem(ci.Problem):
         self._dot_ack_inv_right = cs.Function('dot_inv_right', [d_r], [self.dot_ack_inv_right])
 
 
+        #####################################Creating the drivetrain formula:######################################################
+
+        x = cs.MX.sym('in', 3)
+        F_xi =x[0]
+        v_x = x[1]
+        v_y = x[2]
+        
+        self._motor_reference = F_xi / C_m1 + C_m2 / C_m1 *(cs.sqrt(v_x**2 + v_y**2))+C_m3/C_m1
+
+        self._dot_motor_reference = cs.gradient(self._motor_reference, x) #Gradient
+
+        self._motor_reference = cs.Function('motor_reference', [x], [self._motor_reference])
+        self._dot_motor_reference = cs.Function('motor_reference', [x], [self._dot_motor_reference])
+
+
+
+
         #####################################Expressing the objective function#############################################################
         cost = 0
         x = cs.MX.sym('x', n_opt)
@@ -118,12 +156,32 @@ class OptProblem(ci.Problem):
             
             cost += e_c**2*self.wc + e_l**2*self.wl
 
+            delta_steering = x[k*self.nx + self.model.nv + 6] #right steering velocity
+            delta_steering = self._ack_inv_right(delta_steering)
+            cost += cs.fabs(delta_steering)*self.ss
+
         k_0 = self.N*self.nx
         for k in range(self.N-1):
             thetadot = x[k_0 + k*self.nu + 6]
             cost-= thetadot*self.wt 
 
-      
+        for k in range(self.N-2):
+            
+            F_xi0 = x[k_0 + k*self.nu + 1]
+            v_x0 = x[k*self.nx + self.model.nv + 0]
+            v_y0 = x[k*self.nx + self.model.nv + 1]
+
+
+            F_xi1 = x[k_0 + (k+1)*self.nu + 1]
+            v_x1 = x[(k+1)*self.nx + self.model.nv + 0]
+            v_y1 = x[(k+1)*self.nx + self.model.nv + 1]
+
+            d_0 = self._motor_reference(cs.hcat([F_xi0, v_x0, v_y0]))
+            d_1 = self._motor_reference(cs.hcat([F_xi1, v_x1, v_y1]))
+
+            delta_d = cs.fabs(d_0-d_1)/self.model.opt.timestep
+            cost += delta_d*self.sd
+
 
         self._objective_ = cs.Function('objective', [x], [cost])
         grad = cs.gradient(cost, x)
@@ -167,12 +225,7 @@ class OptProblem(ci.Problem):
         Args:
             x: optimisation variables
         """
-        #TODO: create a symbolic function for evaulating the steering input of the bicycle model from the vehicle's current steering inputs \TICK\
-        #list of constraints: 
-        #TODO: Initial condition \TICK\
-        #TODO: Dynamics constraint 1-N \TICK\
-        #TODO: drivetrain: u_d1 - ud_2 =0, ud_2 - ud_3 = 0, ud_3 - ud_4 = 0 \TICK\
-        #TODO: ack_inv(delta_left)-ack_inv(delta_right) = 0 \TICK\
+
 
 
         #delta_in_left = cs.atan((-cs.tan(delta_left) * wb) / (0.5 * tw * cs.tan(delta_left) - wb))
@@ -199,6 +252,15 @@ class OptProblem(ci.Problem):
 
         for k in range(self.N-1):
             constraints = np.append(constraints, x[k_0+ k*self.nu +4]- x[k_0+ k*self.nu +5])
+
+        """Drivetrain motor reference: MIN MAX"""
+        for k in range(self.N-1):
+            F_xi = x[k_0 + k *self.nu + 1] #F_xi
+            v_x = x[k*self.nx + self.model.nv+0] #v_x
+            v_y = x[k*self.nx + self.model.nv+1] #v_y
+
+            d = self._motor_reference(cs.hcat((F_xi, v_x, v_y)))
+            constraints = np.append(constraints, d)
 
         """Ackermann Steering Constraints"""
         #INDEXING OF the actuators: Left:0 Right:3-> these indexes are shifted by k_0, to the end of the STATE trajectory
@@ -300,6 +362,21 @@ class OptProblem(ci.Problem):
             con_jac[N_0+k, k_0 + k*self.nu + 5] = -1
         N_0 +=self.N-1
 
+        """Drivetrain motor reference: MIN MAX"""
+        for k in range(self.N-1):
+            F_xi = x[k_0+k *self.nu + 1]
+            v_x = x[k*self.nx + self.model.nv+0]
+            v_y = x[k*self.nx + self.model.nv+1]
+
+
+
+            grad = self._dot_motor_reference(cs.hcat((F_xi, v_x, v_y)))
+            con_jac[N_0+k , k_0+k *self.nu + 1] =float(grad[0]) #F_xi
+            con_jac[N_0+k ,k*self.nx + self.model.nv+0] =float(grad[1]) #v_x
+            con_jac[N_0+k ,k*self.nx + self.model.nv+1] =float(grad[2]) #v_y
+
+
+        N_0 +=self.N-1
 
         """Ackermann Steering Constraints"""#row52
 
@@ -315,10 +392,6 @@ class OptProblem(ci.Problem):
 
         row, col = self.jacobianstructure()
 
-        for i in range(len(con_jac)):
-            #print(f"row {i}")
-            #input(con_jac[i,:])
-            pass
         return con_jac[row, col]
         
 
@@ -327,14 +400,14 @@ class OptProblem(ci.Problem):
         qpos_actual = self.qpos0.copy()
         mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
         self.data.qpos = qpos_actual
-        #self.data.qpos[8] = 0
-        #self.data.qpos[9] = 0
-        #self.data.qpos[11] = 0
-        #self.data.qpos[12] = 0
+  
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
-        #for _ in range(int(self.dt / self.model.opt.timestep)):
-        mj.mj_step(self.model, self.data)
+
+
+        for _ in range(self.substep):
+            mj.mj_step(self.model, self.data)
+
         mj.mj_differentiatePos(self.model, qpos_err, 1, self.qpos0, self.data.qpos)
         return np.hstack((qpos_err, self.data.qvel))
 
@@ -342,17 +415,23 @@ class OptProblem(ci.Problem):
         qpos_err = x_cur[:self.model.nv]
         qpos_actual = self.qpos0.copy()
         mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
-        #self.data.qpos = qpos_actual
-        #self.data.qpos[8] = 0
-        #self.data.qpos[9] = 0
-        #self.data.qpos[11] = 0
-        #self.data.qpos[12] = 0
+        self.data.qpos = qpos_actual
+
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
-        A = np.zeros((2*self.model.nv, 2*self.model.nv))
-        B = np.zeros((2*self.model.nv, self.model.nu))
-        mj.mjd_transitionFD(self.model, self.data, self.fd_eps, 0, A, B, None, None)
-        return A, B
+
+        A_hat = np.eye(2*self.model.nv)
+        B_hat = np.zeros((2*self.model.nv, self.model.nu))
+        for _ in range(self.substep):
+            A = np.zeros((2*self.model.nv, 2*self.model.nv))
+            B = np.zeros((2*self.model.nv, self.model.nu))
+            mj.mjd_transitionFD(self.model, self.data, self.fd_eps, 0, A, B, None, None)
+            A_hat = np.dot(A, A_hat)
+            B_hat = B+ np.dot(A, B_hat)
+            mj.mj_step(self.model, self.data)
+
+
+        return A_hat, B_hat
     
 
     def init_jacobian_structure(self):  
@@ -394,6 +473,14 @@ class OptProblem(ci.Problem):
         for k in range(self.N-1):
             con_jac[N_0+k, k_0 + k*self.nu + 4] = 1
             con_jac[N_0+k, k_0 + k*self.nu + 5] = 1
+        N_0 +=self.N-1
+
+        """Drivetrain motor reference: MIN MAX"""
+        for k in range(self.N-1):
+            con_jac[N_0+k , k_0+k *self.nu + 1] =1 #F_xi
+            con_jac[N_0+k ,k*self.nx + self.model.nv+0] =1 #v_x
+            con_jac[N_0+k ,k*self.nx + self.model.nv+1] =1 #v_y
+
         N_0 +=self.N-1
 
 
@@ -445,8 +532,7 @@ class F1TENTHMJPC(BaseController):
                  data,
                  trajectory: CarTrajectory,
                  params):
-        """#TODO
-        """
+
         self.model = model
         self.data : mj.MjData = data
         self.nx =2* self.model.nv
@@ -457,14 +543,10 @@ class F1TENTHMJPC(BaseController):
         self.N = params["N"]
         qpos_rel = np.zeros(self.model.nv)
         cur_qpos = copy.deepcopy(self.data.qpos)
-        #cur_qpos[7] = 0
-        #cur_qpos[8] = 0
-        #cur_qpos[10] = 0
-        #cur_qpos[11] = 0
         mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
         c_sol = np.hstack((qpos_rel, self.data.qvel))
         self.c_sol = np.hstack((np.tile(c_sol, self.N), np.zeros(self.nu* (self.N-1))))
-
+        self.c_sol[:] = 0.1
         #Time step for the simulation
         self.model.opt.timestep = params["dt"]
         self.dt = params["dt"]
@@ -487,7 +569,7 @@ class F1TENTHMJPC(BaseController):
         ubu[0] = delta_max
         ubu[3] = delta_max
         ubu[6] = theta_dot_max
-        ubu[1] = d_max
+        #ubu[1] = d_max
 
 
         lbx =  -np.ones(self.nx)* 10**20
@@ -500,7 +582,7 @@ class F1TENTHMJPC(BaseController):
         lbu[0] = -delta_max
         lbu[3] = -delta_max
         lbu[6] = theta_dot_min
-        lbu[1] = d_min
+        #lbu[1] = d_min
         
         bounds = (lbx, ubx, lbu, ubu)
      
@@ -514,10 +596,9 @@ class F1TENTHMJPC(BaseController):
         }
 
         #Extracting optimisation weights:
-        weights = (params["e_c"], params["e_l"], params["e_t"])
+        weights = (params["e_c"], params["e_l"], params["e_t"], params["s_s"], params["s_d"])
 
 
-        #Create optimization params for opt_params #TODO
         prob_params = (self.model, self.data, trajectory, self.N, self.qpos0, weights, solver, bounds)
 
         self.problem = OptProblem(*prob_params)
@@ -532,7 +613,7 @@ class F1TENTHMJPC(BaseController):
         self.state_logger.axs[1].set_title("phi(N)")
         self.state_logger.axs[2].set_title("delta_left(N)")
         self.state_logger.axs[3].set_title("d(N)")
-        self.state_logger.axs[3].set_title("d_theta(N)")
+        self.state_logger.axs[4].set_title("d_theta(N)")
         self.state_logger.axs[3].set_xlim(0, self.N)
         self.state_logger.axs[2].set_xlim(0, self.N)
         self.state_logger.axs[1].set_xlim(0, self.N)
@@ -549,10 +630,10 @@ class F1TENTHMJPC(BaseController):
         # Extract states
         qpos_rel = np.zeros(self.model.nv)
         cur_qpos = copy.deepcopy(state["qpos"])
-        cur_qpos[8] = 0
-        cur_qpos[9] = 0
-        cur_qpos[11] = 0
-        cur_qpos[12] = 0
+        #cur_qpos[8] = 0
+        #cur_qpos[9] = 0
+        #cur_qpos[11] = 0
+        #cur_qpos[12] = 0
         mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
         x_0 = np.hstack((qpos_rel, state["qvel"]))
 
@@ -579,5 +660,11 @@ class F1TENTHMJPC(BaseController):
         self.state_logger.set_data(4, np.arange(0,self.N-1,1), x[self.N*self.nx+6 : self.N*self.nx+self.nu*(self.N-1)+6: self.nu])
         self.state_logger.update_plot()
         #ctrl[:] = 0
-        
-        return ctrl
+        delta = self.problem._ack_inv_right(ctrl[0])
+        d = self.problem._motor_reference([ctrl[1], x[self.nx+ self.model.nv +0], x[self.nx+ self.model.nv +1]])
+        theta = x[self.nx + 12]
+        theta_vel = ctrl[6]
+        print(ctrl)
+        print(d)
+        print(delta)
+        return delta, d, theta_vel

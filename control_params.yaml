@@ -1,15 +1,16 @@
-dt: 0.01
-N: 30 #This gives a 1 s ahead prediction
-d_max : 3
-d_min : 0.01
+dt: 0.02
+N: 6 #This gives a 1 s ahead prediction
+d_max :  0.2
+d_min : 0.05
 delta_max : 0.5
-dtheta_max : 2
-dtheta_min : 00.01
+dtheta_max : 4
+dtheta_min : 0.01
 
-e_c : 40
-e_l : 40
-e_t : 0.05
-
-print_level: 0
-max_iter: 50
-tol: 0.0001
+e_c : 120 #Contouring
+e_l : 60 #Longitudinal
+e_t : 1 #Propagation
+s_s : 0.05 #Steering smoothness
+s_d : 0.05 #Motor reference smoothness
+print_level: 0 #Debug
+max_iter: 100 #Solver iteration
+tol: 0.001 #Simulation tolerance

@@ -21,11 +21,11 @@ def quaternion_from_z_rotation(rotation_z):
     
     return f"{w} {x} {y} {z}"
 
-car_pos = np.array([1.5, 1.5, 0.05])
+car_pos = np.array([0, 0, 0.05])
 car_quat = quaternion_from_z_rotation(3.14/4)
 path_points = np.array(
     [
-        #[0, 0],
+        [0, 0],
         [1.5, 1.5],
         [2, 2],
         [3, 2],
@@ -88,15 +88,27 @@ if __name__ == "__main__":
     control_data = copy.deepcopy(sim.data)
 
     controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
-    sim.model.opt.timestep = 0.005
+    sim.model.opt.timestep = params["dt"]
 
-    c.controller = controller
+    #c.controller = controller
   
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
 
-            
+            c.data.qpos[2] = 0.5
+            c.data.qvel[5] = 1
+
+            qpos_rel = np.zeros(controller.model.nv)
+            c.set_torques(0.2)
+
+            mj.mj_differentiatePos(c.model, qpos_rel, 1, controller.qpos0, c.data.qpos)
+            print(qpos_rel[7])
+            qpos_actual = controller.qpos0.copy()
+
+            mj.mj_integratePos(c.model, qpos_actual, qpos_rel, 1)
+            print(qpos_actual[6])
+            print(qpos_actual[7])
             #c.data.qpos[2] = 0.5
             #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
