@@ -29,7 +29,7 @@ class OptProblem(ci.Problem):
         -opt_params: ?????
         qpos0: initial state
         -weights: opt weights
-        -vehicle_params: vehicle parameters
+        -vehicle_params: vehicle parameters #TODO
         """
         
         #####################################Creating class variables######################################################################
@@ -61,7 +61,7 @@ class OptProblem(ci.Problem):
             C_m3 = Car.C_M3
             self.substep = 20
             self.time_step = self.model.opt.timestep
-            self.sim_step = self.model.opt.timestep/self.substep
+            self.model.opt.timestep = self.model.opt.timestep/self.substep
             
 
         self._set_trajectory(trajectory.evol_tck, trajectory.pos_tck) #Convert the default CarTrajectry to the casadi implementation
@@ -141,6 +141,7 @@ class OptProblem(ci.Problem):
 
 
         #####################################Expressing the objective function#############################################################
+        
         cost = 0
         x = cs.MX.sym('x', n_opt)
         for k in range(self.N):
@@ -409,11 +410,16 @@ class OptProblem(ci.Problem):
             mj.mj_step(self.model, self.data)
 
         mj.mj_differentiatePos(self.model, qpos_err, 1, self.qpos0, self.data.qpos)
+        while qpos_err[5] - x_cur[5] >= np.pi:
+            qpos_err[5] = qpos_err[5]-np.pi
+        while x_cur[5]  -qpos_err[5] >= np.pi:
+            qpos_err[5] = qpos_err[5]+np.pi
         return np.hstack((qpos_err, self.data.qvel))
 
     def dyn_jac(self, x_cur, u_cur):
         qpos_err = x_cur[:self.model.nv]
         qpos_actual = self.qpos0.copy()
+        #qpos_err[5] = np.unwrap(qpos_err[5])
         mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
         self.data.qpos = qpos_actual
 

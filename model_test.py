@@ -8,6 +8,7 @@ from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
 from mjpcipopt import F1TENTHMJPC
+from util.MPCC_plotter import Advanced_MPCC_plotter
 import math
 import yaml
 import copy
@@ -22,7 +23,7 @@ def quaternion_from_z_rotation(rotation_z):
     return f"{w} {x} {y} {z}"
 
 car_pos = np.array([0, 0, 0.05])
-car_quat = quaternion_from_z_rotation(3.14/4)
+car_quat = quaternion_from_z_rotation(3.14*3/4)
 path_points = np.array(
     [
         [0, 0],
@@ -88,10 +89,15 @@ if __name__ == "__main__":
     control_data = copy.deepcopy(sim.data)
 
     controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
-    sim.model.opt.timestep = params["dt"]
+    #sim.model.opt.timestep = params["dt"]
 
     #c.controller = controller
-  
+    data = []
+    n_data =c.model.nv*2
+    for i in range(n_data):
+        data.append([])
+    max_num = 0
+    max_i = 0
     with sim.launch():
         while sim.viewer.is_running():
             sim.tick()
@@ -100,16 +106,30 @@ if __name__ == "__main__":
             c.data.qvel[5] = 1
 
             qpos_rel = np.zeros(controller.model.nv)
-            c.set_torques(0.2)
-
+            #c.set_torques(0.2)
+            #c.set_steer_angles(0.5)
             mj.mj_differentiatePos(c.model, qpos_rel, 1, controller.qpos0, c.data.qpos)
-            print(qpos_rel[7])
             qpos_actual = controller.qpos0.copy()
-
+            A = np.zeros((c.model.nv*2,c.model.nv*2))
+            B = np.zeros((c.model.nv*2, c.model.nu))
+            mj.mjd_transitionFD(c.model, c.data,0.001,1, A, B, None, None);
             mj.mj_integratePos(c.model, qpos_actual, qpos_rel, 1)
-            print(qpos_actual[6])
-            print(qpos_actual[7])
+            for i in range(n_data):
+                data[i].append(A[5,i])
+                try:
+                    if np.fabs(data[i][-1]-data[i][-2]) > max_num:
+                        max_i = i
+                        max_num = np.fabs(data[i][-1]-data[i][-2])
+                        max_phi = qpos_rel[5]
+                except:
+                    pass
+            #print(data)
+            #print(np.arange(0,len(data),1))
+            
+
+
             #c.data.qpos[2] = 0.5
             #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
             #print(c.state)
+        print(f"max: {max_num}% i: {max_i} phi: {max_phi}")

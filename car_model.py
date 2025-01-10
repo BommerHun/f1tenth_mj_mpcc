@@ -142,6 +142,8 @@ class Car(controlled_object.ControlledObject):
         torque = Car.C_M1*d - Car .C_M2*v - Car.C_M3*np.sign(v)
         for wheel in self.wheels.values():
             wheel.ctrl[0] = utils_general.clamp(torque, Car.MAX_TORQUE)
+
+            
     def set_theta_vel(self, theta_vel)->None:
         """
         Sets the velocity of the virtual state of the model
