@@ -21,8 +21,9 @@ def quaternion_from_z_rotation(rotation_z):
     
     return f"{w} {x} {y} {z}"
 
+phi0 = 3.14/2
 car_pos = np.array([1.5, 1.5, 0.05])
-car_quat = quaternion_from_z_rotation(3.14/4)
+car_quat = quaternion_from_z_rotation(phi0)
 path_points = np.array(
     [
         #[0, 0],
@@ -75,6 +76,7 @@ if __name__ == "__main__":
 
     c = Car(has_trailer=False)
 
+
     scn.add_object(c, pos=f"{car_pos[0]} {car_pos[1]} {car_pos[2]}", quat=car_quat)
 
     m = Trajectory_Marker(x = path_points[:, 0], y = path_points[:,1])
@@ -91,12 +93,17 @@ if __name__ == "__main__":
     sim.model.opt.timestep = 0.005
 
     c.controller = controller
-  
+
+    qpos0 = np.zeros(c.model.nq)
+
+    qpos0[:3] = car_pos
+    qpos0[3] = 3.14/4
     with sim.launch():
+        mj.mju_copy(c.data.qpos, qpos0)
         while sim.viewer.is_running():
             sim.tick()
 
-            
+            print(c.data.qpos)
             #c.data.qpos[2] = 0.5
             #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))

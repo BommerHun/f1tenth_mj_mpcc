@@ -100,7 +100,7 @@ class Car(controlled_object.ControlledObject):
             "rear_right": Wheel(self.name+Wheel.REAR_RIGHT, pos=f"-{Car.WHEEL_X} -{Car.WHEEL_Y} 0")
         }  #: Object to access the relevant mjdata for Wheels.
         self.has_trailer: bool = has_trailer  #: Whether a trailer is attached
-
+        
     @property
     def state(self) -> dict[str, float]:
         """
@@ -143,7 +143,7 @@ class Car(controlled_object.ControlledObject):
         for wheel in self.wheels.values():
             wheel.ctrl[0] = utils_general.clamp(torque, Car.MAX_TORQUE)
 
-            
+
     def set_theta_vel(self, theta_vel)->None:
         """
         Sets the velocity of the virtual state of the model
@@ -267,13 +267,29 @@ class Car(controlled_object.ControlledObject):
 
     def create_xml_element(self, pos: str, quat: str, color: str) -> dict[str, list[ET.Element]]:
         site_name = f"{self.name}_cog"
-        car = ET.Element("body", name=self.name, pos=pos, quat=quat)  # top level body with free joint
+        car = ET.Element("body", name=self.name, pos="0 0 0.05", quat=f"1 0 0 0")  # top level body with free joint
         ret = {"worldbody" : [car],
                "actuator": [],
                "sensor": [],
                "contact": []}
+        
+
+        #ET.SubElement(car, "joint", name=self.name, type="free") #This must be replaced with slide joints and hinge joints
+
+        #Order of joints: slide: xyz; hinge: zyx
+        ######################### CREATING THE JOINTS FOR A 6DOF SYSTEM ################################################
         ET.SubElement(car, "inertial", pos="0 0 0", diaginertia=Car.DIAGINERTIA, mass=Car.MASS)
-        ET.SubElement(car, "joint", name=self.name, type="free")
+
+        ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", ref = "0.05") #This must be replaced with slide joints and hinge joints
+
+        ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
+
+
+
         ET.SubElement(car, "site", name=site_name, pos="0 0 0")
         ######################### ADDING ALL THE GEOMS THAT MAKE UP THE MAIN BODY OF THE CAR ###########################
         ET.SubElement(car, "geom", name=self.name + "_chassis_b", type="box", size=".10113 .1016 .02", pos="-.06 0 0", rgba=color)

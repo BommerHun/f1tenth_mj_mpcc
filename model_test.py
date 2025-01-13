@@ -22,8 +22,9 @@ def quaternion_from_z_rotation(rotation_z):
     
     return f"{w} {x} {y} {z}"
 
-car_pos = np.array([0, 0, 0.05])
-car_quat = quaternion_from_z_rotation(3.14*3/4)
+phi0 = 3.14/2
+car_pos = np.array([1.5, 1.5, 0.05])
+car_quat = quaternion_from_z_rotation(phi0)
 path_points = np.array(
     [
         [0, 0],
@@ -72,7 +73,6 @@ if __name__ == "__main__":
     traj = CarTrajectory()
     traj.build_from_points_const_speed(path_points, path_smoothing=0.01, path_degree=4, const_speed=1.5)
 
-    c_model, c_data, c_scene = create_control_model(c_pos= car_pos, c_quat=car_quat)
 
     c = Car(has_trailer=False)
 
@@ -92,44 +92,25 @@ if __name__ == "__main__":
     #sim.model.opt.timestep = params["dt"]
 
     #c.controller = controller
-    data = []
-    n_data =c.model.nv*2
-    for i in range(n_data):
-        data.append([])
-    max_num = 0
-    max_i = 0
+   
+    qpos0 = np.zeros(c.model.nq)
+
+    qpos0[:3] = car_pos
+    qpos0[3] = 3.14/2
     with sim.launch():
+        mj.mju_copy(c.data.qpos, qpos0)
         while sim.viewer.is_running():
             sim.tick()
 
-            c.data.qpos[2] = 0.5
-            c.data.qvel[5] = 1
-
-            qpos_rel = np.zeros(controller.model.nv)
-            #c.set_torques(0.2)
-            #c.set_steer_angles(0.5)
-            mj.mj_differentiatePos(c.model, qpos_rel, 1, controller.qpos0, c.data.qpos)
-            qpos_actual = controller.qpos0.copy()
-            A = np.zeros((c.model.nv*2,c.model.nv*2))
-            B = np.zeros((c.model.nv*2, c.model.nu))
-            mj.mjd_transitionFD(c.model, c.data,0.001,1, A, B, None, None);
-            mj.mj_integratePos(c.model, qpos_actual, qpos_rel, 1)
-            for i in range(n_data):
-                data[i].append(A[5,i])
-                try:
-                    if np.fabs(data[i][-1]-data[i][-2]) > max_num:
-                        max_i = i
-                        max_num = np.fabs(data[i][-1]-data[i][-2])
-                        max_phi = qpos_rel[5]
-                except:
-                    pass
+           
+                
             #print(data)
             #print(np.arange(0,len(data),1))
-            
+            qpos_rel =  np.zeros(c.model.nq)
+            mj.mj_differentiatePos(c.model, qpos_rel, 1, np.zeros(c.model.nq), c.data.qpos)
 
-
+            print(qpos_rel)
             #c.data.qpos[2] = 0.5
             #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
             #print(c.state)
-        print(f"max: {max_num}% i: {max_i} phi: {max_phi}")

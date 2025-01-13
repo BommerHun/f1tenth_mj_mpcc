@@ -385,3 +385,132 @@ WARNING: Nan, Inf or huge value in QPOS at DOF 0. The simulation is unstable. Ti
 Tue Jan  7 13:41:01 2025
 WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 1.5000.
 
+Fri Jan 10 11:45:37 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:45:52 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:46:20 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:46:45 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:47:36 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:48:21 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:48:26 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:48:26 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:50:54 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:50:54 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:51:04 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:51:05 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:53:34 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:53:41 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:53:54 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:54:03 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:54:03 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:01 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:01 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:34 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:34 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:51 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:55:52 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:57:03 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 11:57:04 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:35:36 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:35:36 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:36:30 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:36:35 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:36:35 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:37:23 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:38:45 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:38:45 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:39:11 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:39:11 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:45:43 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:45:43 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:46:17 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:46:17 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:47:30 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:48:09 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:48:13 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+
+Fri Jan 10 13:48:14 2025
+WARNING: Inertia matrix is too close to singular at DOF 2. Check model. Time = 0.0000.
+

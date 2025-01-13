@@ -399,8 +399,8 @@ class OptProblem(ci.Problem):
     def dyn_step(self, x_cur, u_cur):
         qpos_err = x_cur[:self.model.nv]
         qpos_actual = self.qpos0.copy()
-        mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
-        self.data.qpos = qpos_actual
+        #mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
+        self.data.qpos = qpos_err
   
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
@@ -409,19 +409,16 @@ class OptProblem(ci.Problem):
         for _ in range(self.substep):
             mj.mj_step(self.model, self.data)
 
-        mj.mj_differentiatePos(self.model, qpos_err, 1, self.qpos0, self.data.qpos)
-        while qpos_err[5] - x_cur[5] >= np.pi:
-            qpos_err[5] = qpos_err[5]-np.pi
-        while x_cur[5]  -qpos_err[5] >= np.pi:
-            qpos_err[5] = qpos_err[5]+np.pi
+        #mj.mj_differentiatePos(self.model, qpos_err, 1, self.qpos0, self.data.qpos)
+        qpos_err = self.data.qpos
         return np.hstack((qpos_err, self.data.qvel))
 
     def dyn_jac(self, x_cur, u_cur):
         qpos_err = x_cur[:self.model.nv]
         qpos_actual = self.qpos0.copy()
         #qpos_err[5] = np.unwrap(qpos_err[5])
-        mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
-        self.data.qpos = qpos_actual
+        #mj.mj_integratePos(self.model, qpos_actual, qpos_err, 1)
+        self.data.qpos = qpos_err
 
         self.data.qvel = x_cur[self.model.nv:]
         self.data.ctrl = u_cur
@@ -545,12 +542,12 @@ class F1TENTHMJPC(BaseController):
         self.nu = self.model.nu
         # Quaternion states are relative, this is the setpoint
         self.qpos0 = np.zeros(self.model.nq)
-        self.qpos0[3] = 1
+        #self.qpos0[3] = 1
         self.N = params["N"]
         qpos_rel = np.zeros(self.model.nv)
         cur_qpos = copy.deepcopy(self.data.qpos)
-        mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
-        c_sol = np.hstack((qpos_rel, self.data.qvel))
+        #mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
+        c_sol = np.hstack((self.data.qpos, self.data.qvel))
         self.c_sol = np.hstack((np.tile(c_sol, self.N), np.zeros(self.nu* (self.N-1))))
         self.c_sol[:] = 0.1
         #Time step for the simulation
@@ -568,7 +565,7 @@ class F1TENTHMJPC(BaseController):
 
         ubx =  np.ones(self.nx)* 10**20
         ubx[12] = theta_max
-        ubx[int(self.nx/2) + 6] = 1
+        ubx[int(self.nx/2) + 6] = 1 #Steering constraint
         ubx[int(self.nx/2) + 9] = 1
 
         ubu = np.ones( self.nu)*10**20
@@ -640,8 +637,8 @@ class F1TENTHMJPC(BaseController):
         #cur_qpos[9] = 0
         #cur_qpos[11] = 0
         #cur_qpos[12] = 0
-        mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
-        x_0 = np.hstack((qpos_rel, state["qvel"]))
+        #mj.mj_differentiatePos(self.model, qpos_rel, 1, self.qpos0, cur_qpos)
+        x_0 = np.hstack((state["qpos"], state["qvel"]))
 
         
         x, info = self.problem.solve(x_0, self.c_sol)
