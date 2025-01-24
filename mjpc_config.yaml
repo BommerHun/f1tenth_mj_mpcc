@@ -1,0 +1,29 @@
+#timestep
+dt: 0.05 #20Hz
+substep: 5 #This gives us 100Hz simulation
+N: 20
+
+print_level: 0
+max_iter: 100
+tol: 0.0001
+#weights
+e_c: 50
+e_l: 50
+e_t: 6
+e_ss: 0.0000
+e_sd: 0.0000 #Not implemented yet
+
+#bounds:
+d_max: 0.3
+d_min: 0.05
+delta_max: 0.6
+dot_delta_max: 0.5
+dot_theta_min: 0.05
+dot_theta_max: 3.5
+#vehicle parameters
+C_m1: 52.4282 
+C_m2: 5.2465  
+C_m3: 1.119465
+
+tw: 0.32226
+wb: 0.244477

@@ -159,7 +159,7 @@ class Car(controlled_object.ControlledObject):
         """
         if self.trajectory is not None and self.controller is not None:
             setpoint = self.trajectory.evaluate(self.data.time, self.state)
-            delta, d, theta_vel = self.controller.compute_control(self.state, setpoint, self.data.time)
+            delta,delta_vel, d, theta_vel = self.controller.compute_control(self.state, setpoint, self.data.time)
             self.set_torques(d)
             self.set_steer_angles(delta)
             self.set_theta_vel(theta_vel)
@@ -282,11 +282,11 @@ class Car(controlled_object.ControlledObject):
 
         ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
         ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", ref = "0.05") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", ref = "0.05", range = "-0.1 0.055", limited  = "false") #This must be replaced with slide joints and hinge joints
 
         ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
 
 
 
@@ -318,7 +318,7 @@ class Car(controlled_object.ControlledObject):
                               pos = f"{pos[0]} {y} {pos[2]}",limited="true",
                               frictionloss=Wheel.FRIC_STEER, damping=Wheel.DAMP_STEER, armature=Wheel.ARMATURE_STEER,
                               range=Wheel.STEER_RANGE, axis="0 0 1")
-                ret["actuator"].append(ET.Element("position", forcelimited="true", forcerange="-5 5",
+                ret["actuator"].append(ET.Element("position", forcelimited="false", forcerange="-50 50",
                                                   name=wheel.name+"_actr_steer", joint=wheel.name+"_steer", kp=Wheel.KP))
             ET.SubElement(wheelbody, "joint", name=wheel.name, type="hinge", pos=wheel.pos, axis="0 1 0",
                           frictionloss=Wheel.FRICTIONLOSS, damping=Wheel.DAMPING, armature=Wheel.ARMATURE,

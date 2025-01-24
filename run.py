@@ -4,13 +4,15 @@ import xml.etree.ElementTree as ET
 import mujoco as mj
 #from aiml_virtual.simulated_object.dynamic_object.controlled_object.car import Car
 from car_model import Car
+from control_model import Car_Control_Model
 from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
-from mjpcipopt import F1TENTHMJPC
+from mjpcipopt import F1TENTHMJMPC_IPOPT
 import math
 import yaml
 import copy
+from trajectory_generators import eight
 
 def quaternion_from_z_rotation(rotation_z):
 
@@ -22,45 +24,22 @@ def quaternion_from_z_rotation(rotation_z):
     return f"{w} {x} {y} {z}"
 
 phi0 = 3.14/2
-car_pos = np.array([1.5, 1.5, 0.05])
+
+car_pos = np.array([0, 0, 0.04999])
 car_quat = quaternion_from_z_rotation(phi0)
-path_points = np.array(
-    [
-        #[0, 0],
-        [1.5, 1.5],
-        [2, 2],
-        [3, 2],
-        [4, 1],
-        [4.5, 0],
-        [4, -1],
-        [3, -2],
-        [2, -2],
-        [1, -1],
-        [0, 0],
-        [-1.5, 1.5],
-        [-2, 2],
-        [-3, 2],
-        [-4, 1],
-        [-4.5, 0],
-        [-4, -2.1],
-        [-3, -2.3],
-        [-2, -2],
-        [-1, -1],
-        [0, 0],
-    ]
-)
+path_points, vel = eight()
 
 
 def create_control_model(c_pos, c_quat):
     scn = scene.Scene(os.path.join(xml_directory, "empty_checkerboard.xml"), save_filename=os.path.join("xml_models", "control_scene.xml"))
 
-    c = Car()
+    c = Car_Control_Model()
     scn.add_object(c, pos=f"{car_pos[0]} {car_pos[1]} {car_pos[2]}", quat=car_quat)
     sim = simulator.Simulator(scn)
 
     return sim.model, sim.data, scn.xml_name
 
-def load_mpcc_params(filename = "control_params.yaml"):
+def load_mpcc_params(filename = "mjpc_config.yaml"):
     with open(filename, 'r') as file:
         params = yaml.full_load(file)
         return params
@@ -89,8 +68,8 @@ if __name__ == "__main__":
     control_model = copy.deepcopy(sim.model)
     control_data = copy.deepcopy(sim.data)
 
-    controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
-    sim.model.opt.timestep = 0.005
+    controller = F1TENTHMJMPC_IPOPT(control_model, control_data, trajectory=traj, params=params)
+    sim.model.opt.timestep = 0.01
 
     c.controller = controller
 
@@ -102,8 +81,6 @@ if __name__ == "__main__":
         mj.mju_copy(c.data.qpos, qpos0)
         while sim.viewer.is_running():
             sim.tick()
-
-            print(c.data.qpos)
             #c.data.qpos[2] = 0.5
             #print(c.data.ctrl[0], c.data.ctrl[1])
             #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))

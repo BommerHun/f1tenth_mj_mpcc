@@ -7,8 +7,7 @@ from car_model import Car
 from aiml_virtual import scene, simulator, xml_directory
 from trajectory_util import Trajectory_Marker, Spline_2D
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
-from mjpcipopt import F1TENTHMJPC
-from util.MPCC_plotter import Advanced_MPCC_plotter
+from F1TENTH_MPCC.f1tenth_mpcc import F1TENTHMJMPC_SQP
 import math
 import yaml
 import copy
@@ -22,23 +21,23 @@ def quaternion_from_z_rotation(rotation_z):
     
     return f"{w} {x} {y} {z}"
 
-phi0 = 3.14/2
-car_pos = np.array([1.5, 1.5, 0.05])
+phi0 = 3.14*3/4
+car_pos = np.array([-1.5, 1.5, 0.05])
 car_quat = quaternion_from_z_rotation(phi0)
 path_points = np.array(
     [
-        [0, 0],
-        [1.5, 1.5],
-        [2, 2],
-        [3, 2],
-        [4, 1],
-        [4.5, 0],
-        [4, -1],
-        [3, -2],
-        [2, -2],
-        [1, -1],
-        [0, 0],
-        [-1, 1],
+        #[0, 0],
+        #[1.5, 1.5],
+        #[2, 2],
+        #[3, 2],
+        #[4, 1],
+        #[4.5, 0],
+        #[4, -1],
+        #[3, -2],
+        #[2, -2],
+        #[1, -1],
+        #[0, 0],
+        [-1.5, 1.5],
         [-2, 2],
         [-3, 2],
         [-4, 1],
@@ -61,7 +60,7 @@ def create_control_model(c_pos, c_quat):
 
     return sim.model, sim.data, scn.xml_name
 
-def load_mpcc_params(filename = "control_params.yaml"):
+def load_mpcc_params(filename = "mjpc_config.yaml"):
     with open(filename, 'r') as file:
         params = yaml.full_load(file)
         return params
@@ -85,32 +84,30 @@ if __name__ == "__main__":
     scn.add_object(m)
     sim = simulator.Simulator(scn)
 
-    control_model = copy.deepcopy(sim.model)
-    control_data = copy.deepcopy(sim.data)
+    control_model, control_data , xml_name = create_control_model(car_pos, car_quat)
 
-    controller = F1TENTHMJPC(control_model, control_data, trajectory=traj, params=params)
-    #sim.model.opt.timestep = params["dt"]
-
+    controller = F1TENTHMJMPC_SQP(control_model, control_data, trajectory=traj, params=params, xml_path= xml_name)
+    sim.model.opt.timestep = 0.01
+    c.CTRL_FREQ = 20
     #c.controller = controller
    
     qpos0 = np.zeros(c.model.nq)
 
     qpos0[:3] = car_pos
-    qpos0[3] = 3.14/2
+    qpos0[3] = 3.14*3/4
+    i = 0
+    change = 0.02
     with sim.launch():
         mj.mju_copy(c.data.qpos, qpos0)
         while sim.viewer.is_running():
             sim.tick()
 
-           
-                
-            #print(data)
-            #print(np.arange(0,len(data),1))
-            qpos_rel =  np.zeros(c.model.nq)
-            mj.mj_differentiatePos(c.model, qpos_rel, 1, np.zeros(c.model.nq), c.data.qpos)
+            c.set_steer_angles(0.1)
+            i += change
 
-            print(qpos_rel)
-            #c.data.qpos[2] = 0.5
-            #print(c.data.ctrl[0], c.data.ctrl[1])
-            #print(controller.problem._der_inverse_ackermann_steering(c.data.ctrl[0], c.data.ctrl[3]))
-            #print(c.state)
+            print(f"current delta: {i}")
+            if i >= 0.6 or i <= -0.6:
+                change = -change
+
+            
+

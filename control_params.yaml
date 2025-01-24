@@ -11,6 +11,6 @@ e_l : 60 #Longitudinal
 e_t : 0.5 #Propagation
 s_s : 0.5 #Steering smoothness
 s_d : 0.05 #Motor reference smoothness
-print_level: 0 #Debug
+print_level: 8 #Debug
 max_iter: 10 #Solver iteration
 tol: 0.005 #Simulation tolerance
