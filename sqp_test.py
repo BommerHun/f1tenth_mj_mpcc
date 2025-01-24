@@ -98,7 +98,7 @@ if __name__ == "__main__":
                 id = sim.model.body(f"mpcc_{i}").id
 
                 id = sim.model.body_mocapid[id]
-                sim.data.mocap_pos[id] = np.concatenate((state[:2], np.array([0.5])))
+                sim.data.mocap_pos[id] = np.concatenate((state[:2], np.array([state[2]])))
 
             
 

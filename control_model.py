@@ -73,11 +73,9 @@ class Car_Control_Model(controlled_object.ControlledObject):
         Args:
             delta_in (float): The steer angle in the bicycle model.
         """
-        num = self.wb * math.tan(delta_in)
-        delta_left = math.atan(num / (self.wb + (0.5 * self.tw * math.tan(delta_in))))
-        delta_right = math.atan(num / (self.wb - (0.5 * self.tw * math.tan(delta_in))))
-        self.wheels["front_left"].ctrl_steer[0] = delta_left
-        self.wheels["front_right"].ctrl_steer[0] = delta_right
+        
+        self.wheels["front_left"].ctrl_steer[0] = delta_in
+        self.wheels["front_right"].ctrl_steer[0] = delta_in
 
     def set_torques(self, d: float) -> None:
         """
@@ -263,7 +261,7 @@ class Car_Control_Model(controlled_object.ControlledObject):
                 pos = wheel.pos.split(" ")
                 y = np.sign(float(pos[1]))*Car_Control_Model.STEER_Y
                 ET.SubElement(wheelbody, "joint", name=wheel.name+"_steer", type="hinge",
-                              pos = f"{pos[0]} {y} {pos[2]}",limited="true",
+                              pos = f"{pos[0]} {y} {pos[2]}",
                               range=Wheel.STEER_RANGE, axis="0 0 1")
                 ret["actuator"].append(ET.Element("velocity",  name=wheel.name+"_actr_steer", joint=wheel.name+"_steer"))
             ET.SubElement(wheelbody, "joint", name=wheel.name, type="hinge", pos=wheel.pos, axis="0 1 0",
@@ -271,7 +269,7 @@ class Car_Control_Model(controlled_object.ControlledObject):
                           limited="false")  # wheel rotational joint
             ET.SubElement(wheelbody, "geom", name=wheel.name, type="cylinder", size=Wheel.SIZE, pos=wheel.pos,
                           mass=Wheel.MASS, material="material_check", euler="1.571 0 0")
-            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION))
+            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION,  solimp = "0 0.99 0.01", solref = "0.015 1"))
             ret["actuator"].append(ET.Element("motor", forcerange = "-10 10", name=wheel.name+"_actr", joint=wheel.name))
 
         ################################################ SENSORS #######################################################
