@@ -318,7 +318,9 @@ class F1TENTHMJMPC_SQP(Controller):
             self.ocp_solver.set(0, 'u', self.pre_controller.c_sol[self.N*self.nx : self.N*self.nx+self.nu])
             for i in range(self.N-2):
                 self.ocp_solver.set(i+1, 'u', self.pre_controller.c_sol[self.N*self.nx + (i+1)*self.nu : self.N*self.nx+(i+2)*self.nu])
-        
+            for i in range(100):
+                 status = self.ocp_solver.solve()
+
         for i in range(10):
             status = self.ocp_solver.solve()
         if status == 0:

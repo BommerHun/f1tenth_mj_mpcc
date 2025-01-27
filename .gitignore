@@ -3,3 +3,4 @@ __pycache__/
 acados_c_generated/
 *.xml
 env/
+MUJOCO_LOG.TXT

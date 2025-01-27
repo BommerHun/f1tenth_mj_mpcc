@@ -88,10 +88,7 @@ if __name__ == "__main__":
         mj.mju_copy(c.data.qpos, qpos0)
         while sim.viewer.is_running():
             sim.tick()
-            c.data.qpos[7] = 0
-            c.data.qpos[8] = 0
-            c.data.qpos[10] = 0
-            c.data.qpos[11] = 0
+
             #c.data.qpos = c.controller.ocp_solver.get(1,'x')[:c.model.nq]
             for i in range(params["N"]):
                 state = controller.ocp_solver.get(i, 'x')

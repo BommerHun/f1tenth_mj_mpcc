@@ -226,13 +226,13 @@ class Car_Control_Model(controlled_object.ControlledObject):
         ######################### CREATING THE JOINTS FOR A 6DOF SYSTEM ################################################
         ET.SubElement(car, "inertial", pos="0 0 0", diaginertia=Car_Control_Model.DIAGINERTIA, mass=Car_Control_Model.MASS)
 
-        ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", ref = "0.05") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", damping = "0", armature = "0", ref = "0.05") #This must be replaced with slide joints and hinge joints
 
-        ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
 
 
 
@@ -269,7 +269,7 @@ class Car_Control_Model(controlled_object.ControlledObject):
                           limited="false")  # wheel rotational joint
             ET.SubElement(wheelbody, "geom", name=wheel.name, type="cylinder", size=Wheel.SIZE, pos=wheel.pos,
                           mass=Wheel.MASS, material="material_check", euler="1.571 0 0")
-            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION,  solimp = "0 0.99 0.01", solref = "0.015 1"))
+            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION,  solimp = "0 0.99 0.01"))
             ret["actuator"].append(ET.Element("motor", forcerange = "-10 10", name=wheel.name+"_actr", joint=wheel.name))
 
         ################################################ SENSORS #######################################################

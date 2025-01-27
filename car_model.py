@@ -280,13 +280,13 @@ class Car(controlled_object.ControlledObject):
         ######################### CREATING THE JOINTS FOR A 6DOF SYSTEM ################################################
         ET.SubElement(car, "inertial", pos="0 0 0", diaginertia=Car.DIAGINERTIA, mass=Car.MASS)
 
-        ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", ref = "0.05", range = "-0.1 0.055", limited  = "false") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_x", type="slide", axis = "1 0 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_y", type="slide", axis = "0 1 0", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "slide_z", type="slide", axis = "0 0 1", damping = "0", armature = "0", ref = "0.05", range = "-0.1 0.055", limited  = "false") #This must be replaced with slide joints and hinge joints
 
-        ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
-        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_z", type="hinge", axis = "0 0 1", damping = "0", armature = "0") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_y", type="hinge", axis = "0 1 0", damping = "0", armature = "0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
+        ET.SubElement(car, "joint", name=self.name + "hinge_x", type="hinge", axis = "1 0 0", damping = "0", armature = "0", limited = "false", range = "-0.00000001 0.000000001") #This must be replaced with slide joints and hinge joints
 
 
 
