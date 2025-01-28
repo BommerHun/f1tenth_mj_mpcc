@@ -81,7 +81,7 @@ if __name__ == "__main__":
     c.controller = controller
    
     qpos0 = np.zeros(c.model.nq)
-
+    
     qpos0[:3] = car_pos
     qpos0[3] = 3.14/4
     with sim.launch():

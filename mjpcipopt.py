@@ -9,7 +9,6 @@ import re
 import os
 import threading
 import time as time_ext
-import sympy as sp
 from aiml_virtual.simulated_object.dynamic_object.controlled_object.car import Car
 from aiml_virtual.trajectory.car_trajectory import CarTrajectory
 from trajectory_util import Spline_2D

@@ -110,8 +110,11 @@ int disc_dyn_fun_jac(void **in, void **out, void *params)
 
     mjtNum A[nx*nx];
     mjtNum A_hat[nx*nx];
+    mjtNum TEMP_A[nx*nx];
+
     mjtNum B[nx*nu];
     mjtNum B_hat[nx*nu];
+    mjtNum TEMP_B[nx*nu];
 
     //mj_integratePos(m, qpos_actual, qpos_err, 1);
     for (int i=0; i < nq; i++) {
@@ -146,12 +149,27 @@ int disc_dyn_fun_jac(void **in, void **out, void *params)
  
     
     float temp = 0;
+
+
     for (int step = 0; step < substep; step++)
     {
-        mjd_transitionFD(m, d, 1e-6, false, A, B, NULL, NULL);
+        mjd_transitionFD(m, d, 1e-6, false, A, B, NULL, NULL); //using centered makes it even slower
         mj_step(m,d);    
 
-
+        
+        //mju_mulMatMat(TEMP_A, A, A_hat, nx, nx, nx);
+        //mju_mulMatMat(TEMP_B, A, B_hat, nx, nx, nu);
+        //
+        ////mju_mulMatMat(TEMP_B, A, B_hat, nx, nx, nu);
+//
+        //for (int row = 0; row < nx; row++)
+        //{
+        //    for (int col = 0; col < nx; col++)
+        //    {
+        //        A_hat[row*nx+ col] = TEMP_A[row*nx+col];
+        //        if (col < nu)  B_hat[row*nu+col] = TEMP_B[row*nu+col] + B[row*nu+col];
+        //    }
+        //}
         for (int row = 0; row < nx; row++)
         {
             for (int col = 0; col < nx; col++)
@@ -205,6 +223,7 @@ int disc_dyn_fun_jac(void **in, void **out, void *params)
     return 0;
 }
 
+    
 
 int disc_dyn_fun(void **in, void **out, void *params)
 {

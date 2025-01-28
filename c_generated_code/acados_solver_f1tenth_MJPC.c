@@ -461,7 +461,12 @@ void f1tenth_MJPC_acados_setup_nlp_in(f1tenth_MJPC_solver_capsule* capsule, cons
         cost_scaling[12] = 0.025;
         cost_scaling[13] = 0.025;
         cost_scaling[14] = 0.025;
-        cost_scaling[15] = 1;
+        cost_scaling[15] = 0.025;
+        cost_scaling[16] = 0.025;
+        cost_scaling[17] = 0.025;
+        cost_scaling[18] = 0.025;
+        cost_scaling[19] = 0.025;
+        cost_scaling[20] = 1;
         for (int i = 0; i <= N; i++)
         {
             ocp_nlp_cost_model_set(nlp_config, nlp_dims, nlp_in, i, "scaling", &cost_scaling[i]);
@@ -713,7 +718,7 @@ static void f1tenth_MJPC_acados_create_set_opts(f1tenth_MJPC_solver_capsule* cap
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "levenberg_marquardt", &levenberg_marquardt);
 
     /* options QP solver */
-    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 15;
+    int qp_solver_cond_N;const int qp_solver_cond_N_ori = 20;
     qp_solver_cond_N = N < qp_solver_cond_N_ori ? N : qp_solver_cond_N_ori; // use the minimum value here
     ocp_nlp_solver_opts_set(nlp_config, nlp_opts, "qp_cond_N", &qp_solver_cond_N);
 
@@ -1120,7 +1125,7 @@ void f1tenth_MJPC_acados_print_stats(f1tenth_MJPC_solver_capsule* capsule)
     ocp_nlp_get(capsule->nlp_solver, "stat_m", &stat_m);
 
 
-    double stat[36000];
+    double stat[1200];
     ocp_nlp_get(capsule->nlp_solver, "statistics", stat);
 
     int nrow = nlp_iter+1 < stat_m ? nlp_iter+1 : stat_m;

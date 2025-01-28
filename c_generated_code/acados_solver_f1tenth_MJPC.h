@@ -64,7 +64,7 @@
 #define F1TENTH_MJPC_NY0    0
 #define F1TENTH_MJPC_NY     0
 #define F1TENTH_MJPC_NYN    0
-#define F1TENTH_MJPC_N      15
+#define F1TENTH_MJPC_N      20
 #define F1TENTH_MJPC_NH     5
 #define F1TENTH_MJPC_NHN    0
 #define F1TENTH_MJPC_NH0    0

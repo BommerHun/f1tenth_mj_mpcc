@@ -83,7 +83,7 @@ if __name__ == "__main__":
     params = load_mpcc_params()
     #c.controller = control  
     c.trajectory = traj
-    scn.add_object(m)
+    #scn.add_object(m)
     sim = simulator.Simulator(scn)
 
     control_model, control_data , xml_name = create_control_model(car_pos, car_quat)

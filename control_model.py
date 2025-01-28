@@ -269,7 +269,7 @@ class Car_Control_Model(controlled_object.ControlledObject):
                           limited="false")  # wheel rotational joint
             ET.SubElement(wheelbody, "geom", name=wheel.name, type="cylinder", size=Wheel.SIZE, pos=wheel.pos,
                           mass=Wheel.MASS, material="material_check", euler="1.571 0 0")
-            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION,  solimp = "0 0.99 0.01"))
+            ret["contact"].append(ET.Element("pair", geom1=wheel.name, geom2="ground", condim="6", friction=Wheel.FRICTION,  solimp = "0 0.99 0.01", solref = "0.02 1.1"))
             ret["actuator"].append(ET.Element("motor", forcerange = "-10 10", name=wheel.name+"_actr", joint=wheel.name))
 
         ################################################ SENSORS #######################################################

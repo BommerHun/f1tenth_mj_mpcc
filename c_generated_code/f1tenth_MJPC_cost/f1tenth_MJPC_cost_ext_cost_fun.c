@@ -45,6 +45,7 @@ extern "C" {
 #define casadi_f2 CASADI_PREFIX(f2)
 #define casadi_f3 CASADI_PREFIX(f3)
 #define casadi_f4 CASADI_PREFIX(f4)
+#define casadi_f5 CASADI_PREFIX(f5)
 #define casadi_fill CASADI_PREFIX(fill)
 #define casadi_fill_casadi_int CASADI_PREFIX(fill_casadi_int)
 #define casadi_low CASADI_PREFIX(low)
@@ -323,6 +324,36 @@ static int casadi_f4(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   return 0;
 }
 
+/* inv_right:(i0)->(o0) */
+static int casadi_f5(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
+  casadi_real w0, w1, w2, w3;
+  /* #0: @0 = 0.24477 */
+  w0 = 2.4476999999999999e-01;
+  /* #1: @1 = input[0][0] */
+  w1 = arg[0] ? arg[0][0] : 0;
+  /* #2: @2 = tan(@1) */
+  w2 = tan( w1 );
+  /* #3: @0 = (@0*@2) */
+  w0 *= w2;
+  /* #4: @2 = 0.24477 */
+  w2 = 2.4476999999999999e-01;
+  /* #5: @3 = 0.16113 */
+  w3 = 1.6113000000000000e-01;
+  /* #6: @1 = tan(@1) */
+  w1 = tan( w1 );
+  /* #7: @3 = (@3*@1) */
+  w3 *= w1;
+  /* #8: @2 = (@2+@3) */
+  w2 += w3;
+  /* #9: @0 = (@0/@2) */
+  w0 /= w2;
+  /* #10: @0 = atan(@0) */
+  w0 = atan( w0 );
+  /* #11: output[0][0] = @0 */
+  if (res[0]) res[0][0] = w0;
+  return 0;
+}
+
 /* f1tenth_MJPC_cost_ext_cost_fun:(i0[26],i1[7],i2[0],i3[0])->(o0) */
 static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw, casadi_real* w, int mem) {
   casadi_int i;
@@ -395,17 +426,37 @@ static int casadi_f0(const casadi_real** arg, casadi_real** res, casadi_int* iw,
   w0 *= w5;
   /* #25: @6 = (@6+@0) */
   w6 += w0;
-  /* #26: @0 = 6 */
-  w0 = 6.;
+  /* #26: @0 = 0.0001 */
+  w0 = 1.0000000000000000e-04;
   /* #27: @11 = input[1][0] */
   casadi_copy(arg[1], 7, w11);
-  /* #28: @5 = @11[6] */
-  for (rr=(&w5), ss=w11+6; ss!=w11+7; ss+=1) *rr++ = *ss;
-  /* #29: @0 = (@0*@5) */
+  /* #28: @5 = @11[0] */
+  for (rr=(&w5), ss=w11+0; ss!=w11+1; ss+=1) *rr++ = *ss;
+  /* #29: @4 = inv_right(@5) */
+  arg1[0]=(&w5);
+  res1[0]=(&w4);
+  if (casadi_f5(arg1, res1, iw, w, 0)) return 1;
+  /* #30: @4 = sq(@4) */
+  w4 = casadi_sq( w4 );
+  /* #31: @4 = (@0*@4) */
+  w4  = (w0*w4);
+  /* #32: @6 = (@6+@4) */
+  w6 += w4;
+  /* #33: @4 = 6 */
+  w4 = 6.;
+  /* #34: @8 = @11[6] */
+  for (rr=(&w8), ss=w11+6; ss!=w11+7; ss+=1) *rr++ = *ss;
+  /* #35: @4 = (@4*@8) */
+  w4 *= w8;
+  /* #36: @6 = (@6-@4) */
+  w6 -= w4;
+  /* #37: @5 = sq(@5) */
+  w5 = casadi_sq( w5 );
+  /* #38: @0 = (@0*@5) */
   w0 *= w5;
-  /* #30: @6 = (@6-@0) */
-  w6 -= w0;
-  /* #31: output[0][0] = @6 */
+  /* #39: @6 = (@6+@0) */
+  w6 += w0;
+  /* #40: output[0][0] = @6 */
   if (res[0]) res[0][0] = w6;
   return 0;
 }

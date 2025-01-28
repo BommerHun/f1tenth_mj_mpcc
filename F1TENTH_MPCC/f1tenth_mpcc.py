@@ -18,6 +18,9 @@ from types import SimpleNamespace
 
 from mjpcipopt import F1TENTHMJMPC_IPOPT
 import copy
+
+import time
+
 class F1TENTHMJMPC_SQP(Controller):
     def __init__(self,
                 model: mj.MjModel,
@@ -171,8 +174,8 @@ class F1TENTHMJMPC_SQP(Controller):
         ocp.solver_options.N_horizon = self.N
         ocp.solver_options.hessian_approx = 'GAUSS_NEWTON'
         ocp.solver_options.levenberg_marquardt = 0.1
-        ocp.solver_options.nlp_solver_max_iter = 3000
-        ocp.solver_options.tol = 1e-5
+        ocp.solver_options.nlp_solver_max_iter = 100
+        ocp.solver_options.tol = 1e-3
         ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM'
         ocp.solver_options.integrator_type = 'DISCRETE'
         ocp.solver_options.nlp_solver_type = 'SQP_RTI'
@@ -180,7 +183,7 @@ class F1TENTHMJMPC_SQP(Controller):
 
         # ocp.solver_options.levenberg_marquardt = 0.01
         
-        ocp.solver_options.nlp_solver_tol_stat = 1e-5
+        ocp.solver_options.nlp_solver_tol_stat = 1e-3
         # ocp.solver_options.nlp_solver_tol_eq = 1e-3
         # ocp.solver_options.nlp_solver_tol_ineq = 1e-3
 
@@ -297,7 +300,8 @@ class F1TENTHMJMPC_SQP(Controller):
         self.trajectory.spl_sy = cs.interpolant("traj", "bspline", [s], y)
         self.trajectory.L = s[-1]
 
-    def compute_control(self, state, setpoint = None, time = None, **kwargs):
+    def compute_control(self, state, setpoint = None, t = None, **kwargs):
+        start_time = time.time()
         qpos = copy.deepcopy(state["qpos"])
         qvel = copy.deepcopy(state["qvel"])
         qpos[7] = 0
@@ -321,7 +325,7 @@ class F1TENTHMJMPC_SQP(Controller):
             for i in range(100):
                  status = self.ocp_solver.solve()
 
-        for i in range(10):
+        for i in range(self.params["sqp_iter"]):
             status = self.ocp_solver.solve()
         if status == 0:
             self.first_call = False
@@ -347,7 +351,8 @@ class F1TENTHMJMPC_SQP(Controller):
         for i in range(self.N-2):
             self.ocp_solver.set(i, 'u', self.ocp_solver.get(i+1, 'u'))
         
-
+        end_time = time.time()
+        print(f"current freq: {1/(end_time-start_time)}Hz")
         #d = self._motor_reference(cs.hcat((ctrl[1], pred_state[self.model.nq + 0],pred_state[self.model.nq + 1])))
         #delta = self.ack_inv_left(ctrl[0])
         #theta_vel = ctrl[6]
